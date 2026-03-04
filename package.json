@@ -1,0 +1,10 @@
+{
+  "name": "gokart",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n client,server \"npm run dev --prefix client\" \"npm run dev --prefix server\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
