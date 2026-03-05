@@ -518,3 +518,108 @@ html {
   border-color: rgba(255, 42, 42, 0.65);
   outline: none;
 }
+
+/* ===== Admin Users screen (light theme friendly) ===== */
+
+.admin-users-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.admin-users-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 420px) {
+  .admin-users-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.admin-users-filters .field {
+  margin: 0; /* чтобы сетка была ровнее */
+}
+
+.user-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.user-row-left {
+  min-width: 0;
+  flex: 1;
+}
+
+.user-row-title {
+  font-weight: 950;
+  font-size: 14px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-row-meta {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(10,10,12,0.62);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Чипы под светлые карточки */
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+
+  background: rgba(10,10,12,0.05);
+  border: 1px solid rgba(10,10,12,0.08);
+  color: rgba(10,10,12,0.78);
+
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Акцентный чип (например для лиги) */
+.user-chip-accent {
+  background: rgba(255,42,42,0.10);
+  border-color: rgba(255,42,42,0.22);
+  color: rgba(10,10,12,0.82);
+}
+
+.user-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.user-row-actions .btn {
+  width: auto;          /* важно, иначе кнопки растягиваются на всю ширину */
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+/* чтобы на очень узких экранах кнопки уходили вниз */
+@media (max-width: 360px) {
+  .user-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .user-row-actions {
+    width: 100%;
+  }
+  .user-row-actions .btn {
+    flex: 1;
+  }
+}

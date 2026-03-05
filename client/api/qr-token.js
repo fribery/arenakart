@@ -1,3 +1,4 @@
+export { default } from "./auth/qr-token.js";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
