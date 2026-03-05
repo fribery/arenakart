@@ -1,3 +1,4 @@
+export { default } from "./auth/register.js";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 

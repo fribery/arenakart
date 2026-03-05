@@ -69,7 +69,17 @@ function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    return r.json();
+
+    const text = await r.text();
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      // покажем первые символы ответа (часто это HTML/текст Vercel)
+      throw new Error(
+        `${path} → ${r.status} ${r.statusText}: ${text.slice(0, 120)}`
+      );
+    }
   }
 
   async function refreshAll() {
