@@ -1,4 +1,4 @@
-export { default } from "./auth/me.js";
+export const config = { runtime: "nodejs" };
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
