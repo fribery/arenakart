@@ -26,14 +26,14 @@ function normalizePhone(value) {
   }
 
   if (d.startsWith("7") && d.length === 11) {
-    return `+7 ${d.slice(1, 4)} ${d.slice(4, 7)}-${d.slice(7, 9)}-${d.slice(9, 11)}`;
+    return `+7${d.slice(1)}`;
   }
 
   return "";
 }
 
 function isValidPhone(value) {
-  return /^\+7 \d{3} \d{3}-\d{2}-\d{2}$/.test(String(value || "").trim());
+  return /^\+7\d{10}$/.test(String(value || "").trim());
 }
 
 function getSupabase() {
