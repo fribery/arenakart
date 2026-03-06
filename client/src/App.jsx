@@ -961,6 +961,18 @@ function Page({ children }) {
   );
 }
 
+function formatBirthDate(value) {
+  const s = String(value || "").trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return "Дата не указана";
+
+  const yyyy = m[1];
+  const mm = m[2];
+  const dd = m[3];
+
+  return `${dd}.${mm}.${yyyy}`;
+}
+
 function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
   const [state, setState] = useState({
     loading: false,
@@ -1156,38 +1168,57 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
         <div className="list">
           {state.items.map((u) => (
             <motion.div
-              key={u.id || u.telegram_id}
-              className="card tx"
-              layout
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="user-row">
-                <div className="user-row-left">
-                  <div className="user-row-title">{u.name || "Без имени"}</div>
+                key={u.id || u.telegram_id}
+                className="card tx"
+                layout
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="user-row">
+                  <div className="user-row-left">
+                    <div className="user-row-title">{u.name || "Без имени"}</div>
 
-                  <div className="user-row-meta">
-                    <span className="user-chip">ID: {u.telegram_id}</span>
-                    {u.phone ? <span className="user-chip">{u.phone}</span> : null}
-                    {u.league ? (
-                      <span className="user-chip user-chip-accent">{u.league}</span>
+                    <div className="user-row-meta">
+                      <span className="user-chip">ID: {u.telegram_id}</span>
+                      {u.phone ? <span className="user-chip">{u.phone}</span> : null}
+                      {u.league ? (
+                        <span className="user-chip user-chip-accent">{u.league}</span>
+                      ) : null}
+                      <span className="user-chip">Баланс: {Number(u.balance || 0)}</span>
+                      <span className="user-chip">
+                        Потрачено: {Number(u.total_spent || 0).toLocaleString("ru-RU")} ₽
+                      </span>
+                    </div>
+
+                    {Array.isArray(u.children) && u.children.length > 0 ? (
+                      <div className="user-kids">
+                        <div className="user-kids-title">Дети</div>
+
+                        <div className="user-kids-list">
+                          {u.children.map((child, idx) => (
+                            <div className="user-kid-card" key={`${u.telegram_id}-${idx}`}>
+                              <div className="user-kid-name">
+                                {child?.name || "Без имени"}
+                              </div>
+                              <div className="user-kid-date">
+                                {formatBirthDate(child?.birthDate)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     ) : null}
-                    <span className="user-chip">Баланс: {Number(u.balance || 0)}</span>
-                    <span className="user-chip">
-                      Потрачено: {Number(u.total_spent || 0).toLocaleString("ru-RU")} ₽
-                    </span>
+                  </div>
+
+                  <div className="user-row-actions">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => sendBirthdayInvite(u)}
+                    >
+                      ДР-рассылка
+                    </button>
                   </div>
                 </div>
-
-                <div className="user-row-actions">
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => sendBirthdayInvite(u)}
-                  >
-                    ДР-рассылка
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+              </motion.div>
           ))}
         </div>
       )}

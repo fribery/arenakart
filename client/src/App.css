@@ -623,3 +623,49 @@ html {
     flex: 1;
   }
 }
+
+/* ===== User children in admin list ===== */
+
+.user-kids {
+  margin-top: 12px;
+}
+
+.user-kids-title {
+  font-size: 12px;
+  font-weight: 900;
+  color: rgba(10,10,12,0.58);
+  margin-bottom: 8px;
+  letter-spacing: 0.2px;
+}
+
+.user-kids-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-kid-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding: 10px 12px;
+  border-radius: 14px;
+
+  background: rgba(10,10,12,0.04);
+  border: 1px solid rgba(10,10,12,0.08);
+}
+
+.user-kid-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(10,10,12,0.92);
+}
+
+.user-kid-date {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(10,10,12,0.58);
+  white-space: nowrap;
+}
