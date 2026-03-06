@@ -231,7 +231,7 @@ export default async function handler(req, res) {
     // base query: profiles
     let query = supabase
       .from("profiles")
-      .select("id, telegram_id, name, phone, created_at", { count: "exact" })
+      .select("id, telegram_id, name, phone, created_at, children", { count: "exact" })
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -294,6 +294,7 @@ export default async function handler(req, res) {
         name: p.name,
         phone: p.phone,
         created_at: p.created_at,
+        children: Array.isArray(p.children) ? p.children : [],
         balance: Math.round(bal),
         total_spent: Math.round(totalSpent),
         league: lg,

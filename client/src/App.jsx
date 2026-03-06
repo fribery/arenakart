@@ -990,6 +990,34 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.offset, state.limit, state.q, state.league, state.minBalance, state.maxBalance]);
 
+
+  async function sendBirthdayInvite(user) {
+    try {
+      setStatus("Отправляем сообщение...");
+
+      const r = await api("/api/admin/send-birthday-invite", {
+        initData,
+        targetTelegramId: user.telegram_id,
+        month: 3, // март; потом можно сделать выбор месяца
+        discountText: "скидка 15% на праздник",
+      });
+
+      if (!r.ok) {
+        if (r.error === "NO_BIRTHDAY_IN_MONTH") {
+          setStatus("У этого пользователя нет детей с ДР в марте");
+          return;
+        }
+        setStatus(`Ошибка рассылки: ${r.error}${r.details ? " | " + r.details : ""}`);
+        return;
+      }
+
+      setStatus("Сообщение отправлено ✅");
+    } catch (e) {
+      setStatus("Ошибка: " + String(e?.message || e));
+    }
+  }
+
+
   async function load() {
     setState((p) => ({ ...p, loading: true }));
     setStatus("Загружаем пользователей...");
@@ -1148,6 +1176,15 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
                       Потрачено: {Number(u.total_spent || 0).toLocaleString("ru-RU")} ₽
                     </span>
                   </div>
+                </div>
+
+                <div className="user-row-actions">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => sendBirthdayInvite(u)}
+                  >
+                    ДР-рассылка
+                  </button>
                 </div>
               </div>
             </motion.div>
