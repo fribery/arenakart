@@ -903,7 +903,7 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
   useEffect(() => {
     const t = setTimeout(() => {
       load().catch((e) => setStatus("Ошибка: " + String(e?.message || e)));
-    }, 250);
+    }, 300);
 
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -959,7 +959,7 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
           <div className="label">Поиск</div>
           <input
             className="input"
-            placeholder="Имя или telegramId"
+            placeholder="Имя, телефон или начало telegramId"
             value={state.q}
             onChange={onF("q")}
           />
@@ -1058,6 +1058,7 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
 
                   <div className="user-row-meta">
                     <span className="user-chip">ID: {u.telegram_id}</span>
+                    {u.phone ? <span className="user-chip">{u.phone}</span> : null}
                     {u.league ? (
                       <span className="user-chip user-chip-accent">{u.league}</span>
                     ) : null}

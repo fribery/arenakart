@@ -236,11 +236,17 @@ export default async function handler(req, res) {
       .range(offset, offset + limit - 1);
 
     if (q) {
-      const qNum = Number(q);
-      if (Number.isFinite(qNum) && qNum > 0) {
-        query = query.eq("telegram_id", qNum);
+      const isDigits = /^\d+$/.test(q);
+      const qEscaped = String(q).replace(/[%_,]/g, "");
+
+      if (isDigits) {
+        query = query.or(
+          `telegram_id.like.${qEscaped}%,phone.ilike.%${qEscaped}%,name.ilike.%${qEscaped}%`
+        );
       } else {
-        query = query.ilike("name", `%${q}%`);
+        query = query.or(
+          `name.ilike.%${qEscaped}%,phone.ilike.%${qEscaped}%`
+        );
       }
     }
 
