@@ -13,6 +13,7 @@ function App() {
   const [txs, setTxs] = useState([]);
 
   const [tab, setTab] = useState("profile"); // profile | history | qr
+  const [screen, setScreen] = useState("main"); // main | adminUsers
   const nameRef = useRef(null);
   const phoneRef = useRef(null);
   const [agree, setAgree] = useState(false);
@@ -296,8 +297,6 @@ function App() {
   // Admin Users screen (NEW)
   // =========================
   const BOT_USERNAME = import.meta.env?.VITE_BOT_USERNAME || ""; // без @
-
-  const [adminView, setAdminView] = useState("panel"); // panel | users
 
   const [usersState, setUsersState] = useState({
     loading: false,
@@ -611,6 +610,34 @@ function App() {
     );
   }
 
+  if (screen === "adminUsers") {
+  if (!auth?.isAdmin) {
+    return (
+      <Page>
+        <Header subtitle="Нет доступа" />
+        <Card>
+          <div className="strong">Этот экран доступен только админам</div>
+          <div className="gap" />
+          <button className="btn btn-secondary" onClick={() => setScreen("main")}>
+            Назад
+          </button>
+        </Card>
+        <Status status={status} />
+      </Page>
+    );
+  }
+
+  return (
+    <AdminUsersScreen
+      api={api}
+      initData={WebApp.initData}
+      status={status}
+      setStatus={setStatus}
+      onBack={() => setScreen("main")}
+    />
+  );
+}
+
   // =========================
   // Main
   // =========================
@@ -757,7 +784,7 @@ function App() {
                       <div className="row" style={{ gap: 8, alignItems: "center" }}>
                         <button
                           className="btn btn-secondary"
-                          onClick={() => setAdminView("users")}
+                          onClick={() => setScreen("adminUsers")}
                           type="button"
                         >
                           Пользователи
@@ -1210,6 +1237,203 @@ function Page({ children }) {
         <div className="content">{children}</div>
       </div>
     </div>
+  );
+}
+
+function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
+  const [state, setState] = useState({
+    loading: false,
+    items: [],
+    total: 0,
+    limit: 20,
+    offset: 0,
+    q: "",
+    league: "",
+    minBalance: "",
+    maxBalance: "",
+  });
+
+  const onF = (key) => (e) =>
+    setState((p) => ({
+      ...p,
+      [key]: e.target.value,
+      offset: 0,
+    }));
+
+  async function load() {
+    setState((p) => ({ ...p, loading: true }));
+    setStatus("Загружаем пользователей...");
+
+    const r = await api("/api/admin/users", {
+      initData,
+      limit: state.limit,
+      offset: state.offset,
+      q: (state.q || "").trim(),
+      league: state.league || null,
+      min_balance: state.minBalance ? Number(state.minBalance) : null,
+      max_balance: state.maxBalance ? Number(state.maxBalance) : null,
+    });
+
+    if (!r.ok) {
+      setState((p) => ({ ...p, loading: false }));
+      setStatus(`Ошибка списка: ${r.error}${r.details ? " | " + r.details : ""}`);
+      return;
+    }
+
+    setState((p) => ({
+      ...p,
+      loading: false,
+      items: Array.isArray(r.items) ? r.items : [],
+      total: Number(r.total || 0),
+    }));
+
+    setStatus("Готово");
+  }
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      load().catch((e) => setStatus("Ошибка: " + String(e?.message || e)));
+    }, 250);
+
+    return () => clearTimeout(t);
+  }, [state.offset, state.limit, state.q, state.league, state.minBalance, state.maxBalance]);
+
+  return (
+    <Page>
+      <Header subtitle="Админ • Пользователи" />
+
+      <Card>
+        <div className="row-between" style={{ alignItems: "center" }}>
+          <div>
+            <div className="section-title">Список пользователей</div>
+            <div className="hint">Отдельный экран для админа</div>
+          </div>
+
+          <button className="btn btn-secondary btn-small" onClick={onBack} type="button">
+            Назад
+          </button>
+        </div>
+
+        <div className="field">
+          <div className="label">Поиск</div>
+          <input
+            className="input"
+            placeholder="Имя или telegramId"
+            value={state.q}
+            onChange={onF("q")}
+          />
+        </div>
+
+        <div className="admin-users-filters" style={{ marginTop: 12 }}>
+          <div className="field">
+            <div className="label">Лига</div>
+            <select className="input" value={state.league} onChange={onF("league")}>
+              <option value="">Все</option>
+              <option value="Rookie">Rookie</option>
+              <option value="Pro">Pro</option>
+              <option value="Elite">Elite</option>
+              <option value="Legend">Legend</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <div className="label">Мин. баланс</div>
+            <input
+              className="input"
+              inputMode="numeric"
+              placeholder="0"
+              value={state.minBalance}
+              onChange={onF("minBalance")}
+            />
+          </div>
+
+          <div className="field">
+            <div className="label">Макс. баланс</div>
+            <input
+              className="input"
+              inputMode="numeric"
+              placeholder="10000"
+              value={state.maxBalance}
+              onChange={onF("maxBalance")}
+            />
+          </div>
+        </div>
+
+        <div className="gap" />
+
+        <div className="row-between" style={{ alignItems: "center" }}>
+          <div className="pill">
+            {state.loading ? "Загрузка..." : `${state.total} найдено`}
+          </div>
+
+          <div className="row" style={{ marginTop: 0, gap: 8 }}>
+            <button
+              className="btn btn-secondary btn-small"
+              disabled={state.offset <= 0 || state.loading}
+              onClick={() =>
+                setState((p) => ({
+                  ...p,
+                  offset: Math.max(0, p.offset - p.limit),
+                }))
+              }
+            >
+              ←
+            </button>
+
+            <button
+              className="btn btn-secondary btn-small"
+              disabled={state.loading || state.items.length < state.limit}
+              onClick={() =>
+                setState((p) => ({
+                  ...p,
+                  offset: p.offset + p.limit,
+                }))
+              }
+            >
+              →
+            </button>
+          </div>
+        </div>
+      </Card>
+
+      {state.items.length === 0 ? (
+        <Card>
+          <div className="muted">
+            {state.loading ? "Загрузка..." : "Пользователи не найдены"}
+          </div>
+        </Card>
+      ) : (
+        <div className="list">
+          {state.items.map((u) => (
+            <motion.div
+              key={u.id || u.telegram_id}
+              className="card tx"
+              layout
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="user-row">
+                <div className="user-row-left">
+                  <div className="user-row-title">{u.name || "Без имени"}</div>
+
+                  <div className="user-row-meta">
+                    <span className="user-chip">ID: {u.telegram_id}</span>
+                    {u.league ? (
+                      <span className="user-chip user-chip-accent">{u.league}</span>
+                    ) : null}
+                    <span className="user-chip">Баланс: {Number(u.balance || 0)}</span>
+                    <span className="user-chip">
+                      Потрачено: {Number(u.total_spent || 0).toLocaleString("ru-RU")} ₽
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      <Status status={status} />
+    </Page>
   );
 }
 
