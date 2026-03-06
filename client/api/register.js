@@ -1,8 +1,40 @@
-export { default } from "./auth/register.js";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
+export const config = { runtime: "nodejs" };
+
 const REG_BONUS = 200;
+
+function normalizeCyrillicName(value) {
+  return String(value || "")
+    .replace(/[^А-Яа-яЁё\s-]/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/-+/g, "-")
+    .trim();
+}
+
+function isValidCyrillicName(value) {
+  return /^[А-Яа-яЁё]+(?:[ -][А-Яа-яЁё]+)*$/.test(String(value || "").trim());
+}
+
+function normalizePhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  let d = digits;
+
+  if (d.startsWith("8") && d.length === 11) {
+    d = "7" + d.slice(1);
+  }
+
+  if (d.startsWith("7") && d.length === 11) {
+    return `+7 ${d.slice(1, 4)} ${d.slice(4, 7)}-${d.slice(7, 9)}-${d.slice(9, 11)}`;
+  }
+
+  return "";
+}
+
+function isValidPhone(value) {
+  return /^\+7 \d{3} \d{3}-\d{2}-\d{2}$/.test(String(value || "").trim());
+}
 
 function getSupabase() {
   const url = process.env.SUPABASE_URL;
@@ -48,52 +80,100 @@ function checkTelegramInitData(initData, botToken) {
   return { ok, data, error: ok ? null : "BAD_SIGNATURE" };
 }
 
-function cleanPhone(input) {
-  return String(input || "").trim();
-}
-
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 
   try {
     if (req.method !== "POST") {
-      return res.status(405).end(JSON.stringify({ ok: false, error: "METHOD_NOT_ALLOWED" }));
+      return res.status(405).end(
+        JSON.stringify({ ok: false, error: "METHOD_NOT_ALLOWED" })
+      );
     }
 
     const botToken = process.env.BOT_TOKEN;
     if (!botToken) {
-      return res.status(500).end(JSON.stringify({ ok: false, error: "NO_BOT_TOKEN" }));
+      return res.status(500).end(
+        JSON.stringify({ ok: false, error: "NO_BOT_TOKEN" })
+      );
     }
 
     let body = req.body;
     if (typeof body === "string") {
-      try { body = JSON.parse(body); } catch { body = null; }
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = null;
+      }
     }
 
     const initData = body?.initData;
-    const name = String(body?.name || "").trim();
-    const phone = cleanPhone(body?.phone);
     const agree = Boolean(body?.agree);
 
-    if (!initData) return res.status(400).end(JSON.stringify({ ok: false, error: "NO_INIT_DATA" }));
-    if (!agree) return res.status(400).end(JSON.stringify({ ok: false, error: "MUST_AGREE" }));
-    if (name.length < 2) return res.status(400).end(JSON.stringify({ ok: false, error: "BAD_NAME" }));
-    if (phone.length < 8) return res.status(400).end(JSON.stringify({ ok: false, error: "BAD_PHONE" }));
+    const name = normalizeCyrillicName(body?.name);
+    const phone = normalizePhone(body?.phone);
+
+    const children = Array.isArray(body?.children)
+      ? body.children
+          .map((c) => ({
+            name: normalizeCyrillicName(c?.name),
+            birthDate: String(c?.birthDate || "").trim(),
+          }))
+          .filter((c) => c.name && c.birthDate)
+      : [];
+
+    if (!initData) {
+      return res.status(400).end(
+        JSON.stringify({ ok: false, error: "NO_INIT_DATA" })
+      );
+    }
+
+    if (!agree) {
+      return res.status(400).end(
+        JSON.stringify({ ok: false, error: "MUST_AGREE" })
+      );
+    }
+
+    if (!isValidCyrillicName(name)) {
+      return res.status(400).end(
+        JSON.stringify({ ok: false, error: "BAD_NAME" })
+      );
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).end(
+        JSON.stringify({ ok: false, error: "BAD_PHONE" })
+      );
+    }
+
+    for (const child of children) {
+      if (!isValidCyrillicName(child.name)) {
+        return res.status(400).end(
+          JSON.stringify({ ok: false, error: "BAD_CHILD_NAME" })
+        );
+      }
+    }
 
     const check = checkTelegramInitData(initData, botToken);
     if (!check.ok) {
-      return res.status(401).end(JSON.stringify({ ok: false, error: check.error || "BAD_SIGNATURE" }));
+      return res.status(401).end(
+        JSON.stringify({ ok: false, error: check.error || "BAD_SIGNATURE" })
+      );
     }
 
     let user = null;
-    try { user = check.data.user ? JSON.parse(check.data.user) : null; } catch {}
+    try {
+      user = check.data.user ? JSON.parse(check.data.user) : null;
+    } catch {}
 
-    if (!user?.id) return res.status(400).end(JSON.stringify({ ok: false, error: "NO_USER" }));
+    if (!user?.id) {
+      return res.status(400).end(
+        JSON.stringify({ ok: false, error: "NO_USER" })
+      );
+    }
 
     const telegramId = user.id;
     const supabase = getSupabase();
 
-    // Был ли профиль до регистрации?
     const { data: existedProfile, error: existedErr } = await supabase
       .from("profiles")
       .select("telegram_id")
@@ -101,36 +181,40 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (existedErr) {
-      return res.status(500).end(JSON.stringify({ ok: false, error: "SUPABASE_ERROR", details: existedErr.message }));
+      return res.status(500).end(
+        JSON.stringify({
+          ok: false,
+          error: "SUPABASE_ERROR",
+          details: existedErr.message,
+        })
+      );
     }
 
     const isFirstRegistration = !existedProfile;
 
-    const childrenRaw = body?.children;
-    const children = Array.isArray(childrenRaw)
-      ? childrenRaw
-      .map((c) => ({
-        name: String(c?.name || "").trim(),
-        birthDate: String(c?.birthDate || "").trim(), // "YYYY-MM-DD"
-      }))
-      .filter((c) => c.name.length >= 1 && c.birthDate.length >= 8)
-    : [];
-
-    // upsert профиля
     const { data: profile, error: profErr } = await supabase
       .from("profiles")
-      .upsert({ telegram_id: telegramId, name, phone, children }, { onConflict: "telegram_id" })
+      .upsert(
+        { telegram_id: telegramId, name, phone, children },
+        { onConflict: "telegram_id" }
+      )
       .select("telegram_id, name, phone, created_at")
       .single();
 
     if (profErr) {
-      return res.status(500).end(JSON.stringify({ ok: false, error: "SUPABASE_ERROR", details: profErr.message }));
+      return res.status(500).end(
+        JSON.stringify({
+          ok: false,
+          error: "SUPABASE_ERROR",
+          details: profErr.message,
+        })
+      );
     }
 
-    // Бонус 200 только один раз
     let bonusTx = null;
     if (isFirstRegistration) {
       const ref = `REG_BONUS:${telegramId}`;
+
       const { data: tx, error: txErr } = await supabase
         .from("transactions")
         .insert({
@@ -143,15 +227,19 @@ export default async function handler(req, res) {
         .select("id, telegram_id, type, amount, note, created_at, ref")
         .single();
 
-      // если вдруг гонка/дубль — unique index по ref, Supabase вернёт ошибку
-      // это не критично: просто считаем, что бонус уже есть
       if (!txErr) bonusTx = tx;
     }
 
-    return res.status(200).end(JSON.stringify({ ok: true, profile, bonusTx }));
+    return res.status(200).end(
+      JSON.stringify({ ok: true, profile, bonusTx })
+    );
   } catch (err) {
     return res.status(500).end(
-      JSON.stringify({ ok: false, error: "INTERNAL_ERROR", details: String(err?.message || err) })
+      JSON.stringify({
+        ok: false,
+        error: "INTERNAL_ERROR",
+        details: String(err?.message || err),
+      })
     );
   }
 }

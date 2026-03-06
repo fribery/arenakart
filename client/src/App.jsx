@@ -4,6 +4,71 @@ import QRCode from "qrcode";
 import { AnimatePresence, motion } from "framer-motion";
 import "./App.css";
 
+function normalizeCyrillicName(value) {
+  return String(value || "")
+    .replace(/[^А-Яа-яЁё\s-]/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/-+/g, "-")
+    .trim();
+}
+
+function isValidCyrillicName(value) {
+  return /^[А-Яа-яЁё]+(?:[ -][А-Яа-яЁё]+)*$/.test(String(value || "").trim());
+}
+
+function normalizePhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+
+  let d = digits;
+
+  if (d.startsWith("8") && d.length === 11) {
+    d = "7" + d.slice(1);
+  }
+
+  if (d.startsWith("7") && d.length === 11) {
+    return `+7 ${d.slice(1, 4)} ${d.slice(4, 7)}-${d.slice(7, 9)}-${d.slice(9, 11)}`;
+  }
+
+  return value || "";
+}
+
+function handlePhoneInput(value) {
+  let digits = String(value || "").replace(/\D/g, "");
+
+  if (digits.startsWith("8")) {
+    digits = "7" + digits.slice(1);
+  }
+
+  if (!digits.startsWith("7")) {
+    digits = "7" + digits;
+  }
+
+  digits = digits.slice(0, 11);
+
+  let result = "+7";
+
+  if (digits.length > 1) {
+    result += " " + digits.slice(1, 4);
+  }
+  if (digits.length >= 5) {
+    result += " " + digits.slice(4, 7);
+  }
+  if (digits.length >= 8) {
+    result += "-" + digits.slice(7, 9);
+  }
+  if (digits.length >= 10) {
+    result += "-" + digits.slice(9, 11);
+  }
+
+  return result;
+}
+
+function isValidPhone(value) {
+  return /^\+7 \d{3} \d{3}-\d{2}-\d{2}$/.test(String(value || "").trim());
+}
+
+
+
 function App() {
   const [status, setStatus] = useState("Загрузка...");
   const [auth, setAuth] = useState(null);
@@ -18,6 +83,8 @@ function App() {
   const nameRef = useRef(null);
   const phoneRef = useRef(null);
   const [agree, setAgree] = useState(false);
+  const [regName, setRegName] = useState("");
+  const [regPhone, setRegPhone] = useState("");
 
   const [totalSpent, setTotalSpent] = useState(0);
   const [league, setLeague] = useState(null);
@@ -305,8 +372,11 @@ function App() {
             <input
               ref={nameRef}
               className="input"
-              placeholder="Например, Eugene"
+              placeholder="Например, Евгений"
               autoComplete="name"
+              value={regName}
+              onChange={(e) => setRegName(normalizeCyrillicName(e.target.value))}
+              onBlur={(e) => setRegName(normalizeCyrillicName(e.target.value))}
               onFocus={() => {
                 try {
                   WebApp.expand();
@@ -324,6 +394,9 @@ function App() {
               placeholder="+7 999 123-45-67"
               inputMode="tel"
               autoComplete="tel"
+              value={regPhone}
+              onChange={(e) => setRegPhone(handlePhoneInput(e.target.value))}
+              onBlur={(e) => setRegPhone(normalizePhone(e.target.value))}
               onFocus={() => {
                 try {
                   WebApp.expand();
@@ -358,13 +431,14 @@ function App() {
                     <div className="label">Имя</div>
                     <input
                       ref={(el) => {
-                        if (!kidsRefs.current[key]) {
-                          kidsRefs.current[key] = { nameEl: null, dateEl: null };
-                        }
+                        if (!kidsRefs.current[key]) kidsRefs.current[key] = { nameEl: null, dateEl: null };
                         kidsRefs.current[key].nameEl = el;
                       }}
                       className="input"
                       placeholder="Имя ребёнка"
+                      onInput={(e) => {
+                        e.target.value = normalizeCyrillicName(e.target.value);
+                      }}
                     />
                   </div>
 
@@ -402,16 +476,16 @@ function App() {
             disabled={!canRegister}
             onClick={async () => {
               try {
-                const name = (nameRef.current?.value || "").trim();
-                const phone = (phoneRef.current?.value || "").trim();
+                const name = normalizeCyrillicName(regName);
+                const phone = normalizePhone(regPhone);
 
-                if (name.length < 2) {
-                  setStatus("Введите имя (минимум 2 символа)");
+                if (!isValidCyrillicName(name)) {
+                  setStatus("Имя должно быть на кириллице");
                   return;
                 }
 
-                if (phone.length < 8) {
-                  setStatus("Введите телефон (минимум 8 символов)");
+                if (!isValidPhone(phone)) {
+                  setStatus("Введите телефон в формате +7 999 123-45-67");
                   return;
                 }
 
@@ -419,11 +493,18 @@ function App() {
                   .map((key) => {
                     const refs = kidsRefs.current[key];
                     return {
-                      name: (refs?.nameEl?.value || "").trim(),
+                      name: normalizeCyrillicName(refs?.nameEl?.value || ""),
                       birthDate: (refs?.dateEl?.value || "").trim(),
                     };
                   })
                   .filter((c) => c.name && c.birthDate);
+
+                for (const child of children) {
+                  if (!isValidCyrillicName(child.name)) {
+                    setStatus("Имя ребёнка должно быть на кириллице");
+                    return;
+                  }
+                }
 
                 setStatus("Сохраняем...");
 
