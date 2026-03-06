@@ -142,6 +142,13 @@ function toFiniteNumberOrNull(x) {
   return Number.isFinite(n) ? n : null;
 }
 
+function monthFromBirthDate(value) {
+  const s = String(value || "").trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return Number(m[2]);
+}
+
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   // небольшой кеш на edge/cdn если включено (не критично)
@@ -218,6 +225,11 @@ export default async function handler(req, res) {
 
     const minBalance = toFiniteNumberOrNull(body?.min_balance);
     const maxBalance = toFiniteNumberOrNull(body?.max_balance);
+    const birthMonthRaw = toFiniteNumberOrNull(body?.birth_month);
+    const birthMonth =
+      birthMonthRaw && birthMonthRaw >= 1 && birthMonthRaw <= 12
+        ? birthMonthRaw
+        : null;
 
     // mint admin JWT for RLS
     const adminJwt = makeSupabaseAdminJWT({
@@ -304,6 +316,13 @@ export default async function handler(req, res) {
     // league filter (после расчёта)
     if (leagueFilter) {
       items = items.filter((x) => x.league === leagueFilter);
+    }
+
+    if (birthMonth !== null) {
+      items = items.filter((x) => {
+        const children = Array.isArray(x.children) ? x.children : [];
+        return children.some((child) => monthFromBirthDate(child?.birthDate) === birthMonth);
+      });
     }
 
     // balance filter (после расчёта)

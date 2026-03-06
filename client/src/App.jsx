@@ -984,6 +984,7 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
     league: "",
     minBalance: "",
     maxBalance: "",
+    birthMonth: "",
   });
 
   const onF = (key) => (e) =>
@@ -1000,7 +1001,7 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
 
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.offset, state.limit, state.q, state.league, state.minBalance, state.maxBalance]);
+  }, [state.offset, state.limit, state.q, state.league, state.minBalance, state.maxBalance, state.birthMonth]);
 
 
   async function sendBirthdayInvite(user) {
@@ -1042,6 +1043,7 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
       league: state.league || null,
       min_balance: state.minBalance ? Number(state.minBalance) : null,
       max_balance: state.maxBalance ? Number(state.maxBalance) : null,
+      birth_month: state.birthMonth ? Number(state.birthMonth) : null,
     });
 
     if (!r.ok) {
@@ -1095,6 +1097,25 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
               <option value="Pro">Pro</option>
               <option value="Elite">Elite</option>
               <option value="Legend">Legend</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <div className="label">Месяц рождения</div>
+            <select className="input" value={state.birthMonth} onChange={onF("birthMonth")}>
+              <option value="">Все</option>
+              <option value="1">Январь</option>
+              <option value="2">Февраль</option>
+              <option value="3">Март</option>
+              <option value="4">Апрель</option>
+              <option value="5">Май</option>
+              <option value="6">Июнь</option>
+              <option value="7">Июль</option>
+              <option value="8">Август</option>
+              <option value="9">Сентябрь</option>
+              <option value="10">Октябрь</option>
+              <option value="11">Ноябрь</option>
+              <option value="12">Декабрь</option>
             </select>
           </div>
 
