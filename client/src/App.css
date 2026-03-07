@@ -955,6 +955,7 @@ html {
 
 .inventory-modal-meta {
   margin-top: 14px;
+  margin-bottom: 14px;
   display: flex;
   flex-direction: column;
   gap: 10px;

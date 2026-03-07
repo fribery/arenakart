@@ -1483,9 +1483,6 @@ function InventoryModal({ item, onClose }) {
       >
         <div className="inventory-modal-head">
           <div className="inventory-modal-icon">{inventoryEmoji(item.type)}</div>
-          <button type="button" className="inventory-modal-close" onClick={onClose}>
-            ✕
-          </button>
         </div>
 
         <div className="inventory-modal-title">{item.title || "Предмет"}</div>
