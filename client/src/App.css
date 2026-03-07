@@ -669,3 +669,121 @@ html {
   color: rgba(10,10,12,0.58);
   white-space: nowrap;
 }
+
+/* ===== Inventory ===== */
+
+.inventory-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.inventory-item {
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(10,10,12,0.04);
+  border: 1px solid rgba(10,10,12,0.08);
+  box-shadow: var(--shadow2);
+}
+
+.inventory-item-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.inventory-item-title {
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.2;
+  color: rgba(10,10,12,0.92);
+}
+
+.inventory-item-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(10,10,12,0.58);
+}
+
+.inventory-item-desc {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(10,10,12,0.68);
+  line-height: 1.35;
+}
+
+.inventory-meta {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inventory-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.4px;
+}
+
+.pill-muted {
+  background: rgba(10,10,12,0.06);
+  border: 1px solid rgba(10,10,12,0.10);
+  color: rgba(10,10,12,0.55);
+}
+
+/* ===== Admin forms ===== */
+
+.admin-block-title {
+  margin-top: 18px;
+  font-size: 15px;
+  font-weight: 950;
+  color: rgba(10,10,12,0.92);
+}
+
+.admin-block-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(10,10,12,0.55);
+}
+
+.admin-divider {
+  height: 1px;
+  margin: 16px 0;
+  background: rgba(10,10,12,0.08);
+  border-radius: 999px;
+}
+
+/* ===== User inventory-ish chips reuse ===== */
+
+.user-chip.code-chip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.3px;
+}
+
+/* ===== Better stacked admin card on mobile ===== */
+
+.admin-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 520px) {
+  .admin-card-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ===== Small helper tweaks ===== */
+
+.card-soft {
+  background: rgba(255,255,255,0.82);
+  border: 1px solid rgba(10,10,12,0.08);
+  box-shadow: var(--shadow2);
+}
+
+.hint-strong {
+  font-weight: 800;
+  color: rgba(10,10,12,0.72);
+}

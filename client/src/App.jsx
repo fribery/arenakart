@@ -66,7 +66,33 @@ function isValidPhone(value) {
   return /^\+7\d{10}$/.test(String(value || "").trim());
 }
 
+function formatBirthDate(value) {
+  const s = String(value || "").trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return "Дата не указана";
+  return `${m[3]}.${m[2]}.${m[1]}`;
+}
 
+function formatInventoryDate(value) {
+  if (!value) return "Без срока";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "Без срока";
+  return d.toLocaleDateString("ru-RU");
+}
+
+function inventoryStatusLabel(status) {
+  if (status === "used") return "Использовано";
+  if (status === "expired") return "Истекло";
+  return "Активно";
+}
+
+function inventoryTypeLabel(type) {
+  if (type === "discount") return "Скидка";
+  if (type === "certificate") return "Сертификат";
+  if (type === "reward") return "Подарок";
+  if (type === "medal") return "Медаль";
+  return type || "Предмет";
+}
 
 function App() {
   const [status, setStatus] = useState("Загрузка...");
@@ -75,9 +101,10 @@ function App() {
   const [needsRegistration, setNeedsRegistration] = useState(false);
   const [balance, setBalance] = useState(0);
   const [txs, setTxs] = useState([]);
+  const [inventory, setInventory] = useState([]);
 
-  const [tab, setTab] = useState("profile"); // profile | history | qr
-  const [screen, setScreen] = useState("main"); // main | adminUsers
+  const [tab, setTab] = useState("profile");
+  const [screen, setScreen] = useState("main");
 
   const nameRef = useRef(null);
   const phoneRef = useRef(null);
@@ -100,6 +127,11 @@ function App() {
     spendPoints: "",
     note: "",
     qrPayload: "",
+    itemType: "discount",
+    itemTitle: "",
+    itemDescription: "",
+    itemExpiresAt: "",
+    redeemCode: "",
   });
 
   const inTelegram =
@@ -162,6 +194,11 @@ function App() {
       limit: 50,
     });
     if (tx.ok) setTxs(tx.items || []);
+
+    const inv = await api("/api/inventory", {
+      initData: WebApp.initData,
+    });
+    if (inv.ok) setInventory(inv.items || []);
 
     setStatus("Готово");
   }
@@ -341,6 +378,78 @@ function App() {
     }
   }
 
+  async function adminGrantItem() {
+    try {
+      const targetTelegramId = Number(admin.targetTelegramId);
+      if (!Number.isFinite(targetTelegramId) || targetTelegramId <= 0) {
+        setStatus("Введите telegramId клиента для выдачи предмета");
+        return;
+      }
+
+      if (!admin.itemType || !admin.itemTitle.trim()) {
+        setStatus("Заполни тип и название предмета");
+        return;
+      }
+
+      setStatus("Выдаём предмет...");
+
+      const r = await api("/api/admin/grant-item", {
+        initData: WebApp.initData,
+        targetTelegramId,
+        type: admin.itemType,
+        title: admin.itemTitle.trim(),
+        description: admin.itemDescription.trim(),
+        expiresAt: admin.itemExpiresAt ? new Date(admin.itemExpiresAt).toISOString() : null,
+        meta: {},
+      });
+
+      if (!r.ok) {
+        setStatus(`Ошибка выдачи: ${r.error}${r.details ? " | " + r.details : ""}`);
+        return;
+      }
+
+      setAdmin((p) => ({
+        ...p,
+        itemTitle: "",
+        itemDescription: "",
+        itemExpiresAt: "",
+      }));
+
+      await refreshAll();
+      setStatus(`Предмет выдан ✅ Код: ${r.item?.code || "—"}`);
+    } catch (e) {
+      setStatus("Ошибка: " + String(e?.message || e));
+    }
+  }
+
+  async function adminRedeemItem() {
+    try {
+      const code = String(admin.redeemCode || "").trim().toUpperCase();
+      if (!code) {
+        setStatus("Введите код предмета");
+        return;
+      }
+
+      setStatus("Списываем предмет...");
+
+      const r = await api("/api/admin/redeem-item", {
+        initData: WebApp.initData,
+        code,
+      });
+
+      if (!r.ok) {
+        setStatus(`Ошибка списания предмета: ${r.error}${r.details ? " | " + r.details : ""}`);
+        return;
+      }
+
+      setAdmin((p) => ({ ...p, redeemCode: "" }));
+      await refreshAll();
+      setStatus("Предмет списан ✅");
+    } catch (e) {
+      setStatus("Ошибка: " + String(e?.message || e));
+    }
+  }
+
   const screenVariants = {
     initial: { opacity: 0, y: 10 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.22 } },
@@ -484,7 +593,7 @@ function App() {
                 }
 
                 if (!isValidPhone(phone)) {
-                  setStatus("Введите телефон в формате +7 999 123-45-67");
+                  setStatus("Введите телефон в формате +79991234567");
                   return;
                 }
 
@@ -616,6 +725,56 @@ function App() {
                       }}
                     />
                   </div>
+                </Card>
+
+                <Card className="mt-14">
+                  <div className="section-head">
+                    <div>
+                      <div className="section-title">Инвентарь</div>
+                      <div className="hint">Ваши скидки, сертификаты и награды</div>
+                    </div>
+                    <div className="pill">{inventory.length}</div>
+                  </div>
+
+                  {inventory.length === 0 ? (
+                    <div className="muted" style={{ marginTop: 10 }}>
+                      Пока пусто
+                    </div>
+                  ) : (
+                    <div className="list">
+                      {inventory.map((item) => (
+                        <div key={item.id} className="card" style={{ padding: 12, marginTop: 10 }}>
+                          <div className="row-between">
+                            <div>
+                              <div className="strong">{item.title || "Предмет"}</div>
+                              <div className="hint">
+                                {inventoryTypeLabel(item.type)} • {inventoryStatusLabel(item.status)}
+                              </div>
+                            </div>
+                            <div className={`pill ${item.status !== "active" ? "pill-muted" : ""}`}>
+                              {inventoryStatusLabel(item.status)}
+                            </div>
+                          </div>
+
+                          {item.description ? (
+                            <div className="hint" style={{ marginTop: 8 }}>
+                              {item.description}
+                            </div>
+                          ) : null}
+
+                          <div className="user-row-meta" style={{ marginTop: 10 }}>
+                            {item.code ? <span className="user-chip">Код: {item.code}</span> : null}
+                            <span className="user-chip">
+                              Выдан: {formatInventoryDate(item.issued_at || item.created_at)}
+                            </span>
+                            <span className="user-chip">
+                              До: {formatInventoryDate(item.expires_at)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </Card>
 
                 <Card className="mt-14">
@@ -784,6 +943,83 @@ function App() {
                         onClick={admin.qrPayload ? adminSpendByQr : adminSpend}
                       >
                         {admin.qrPayload ? "Списать по QR" : "Списать по ID"}
+                      </button>
+                    </div>
+
+                    <div className="gap-lg" />
+
+                    <div className="admin-block-title">Выдать предмет</div>
+                    <div className="admin-block-subtitle">Скидка, сертификат, подарок или медаль</div>
+
+                    <div className="field">
+                      <div className="label">Тип предмета</div>
+                      <select
+                        className="input"
+                        value={admin.itemType}
+                        onChange={onAdminChange("itemType")}
+                      >
+                        <option value="discount">Скидка</option>
+                        <option value="certificate">Сертификат</option>
+                        <option value="reward">Подарок</option>
+                        <option value="medal">Медаль</option>
+                      </select>
+                    </div>
+
+                    <div className="field">
+                      <div className="label">Название</div>
+                      <input
+                        className="input"
+                        placeholder="Например, Скидка 15%"
+                        value={admin.itemTitle}
+                        onChange={onAdminChange("itemTitle")}
+                      />
+                    </div>
+
+                    <div className="field">
+                      <div className="label">Описание</div>
+                      <input
+                        className="input"
+                        placeholder="Например, На день рождения"
+                        value={admin.itemDescription}
+                        onChange={onAdminChange("itemDescription")}
+                      />
+                    </div>
+
+                    <div className="field">
+                      <div className="label">Срок действия</div>
+                      <input
+                        className="input"
+                        type="date"
+                        value={admin.itemExpiresAt}
+                        onChange={onAdminChange("itemExpiresAt")}
+                      />
+                    </div>
+
+                    <div className="row">
+                      <button className="btn btn-primary" onClick={adminGrantItem}>
+                        Выдать предмет
+                      </button>
+                    </div>
+
+                    <div className="gap-lg" />
+
+                    <div className="admin-divider" />
+                    <div className="admin-block-title">Списать предмет</div>
+                    <div className="admin-block-subtitle">Введи код, который показывает пользователь</div>
+
+                    <div className="field">
+                      <div className="label">Код предмета</div>
+                      <input
+                        className="input"
+                        placeholder="Например, A1B2C3D4"
+                        value={admin.redeemCode}
+                        onChange={onAdminChange("redeemCode")}
+                      />
+                    </div>
+
+                    <div className="row">
+                      <button className="btn btn-secondary" onClick={adminRedeemItem}>
+                        Списать по коду
                       </button>
                     </div>
                   </Card>
@@ -959,18 +1195,6 @@ function Page({ children }) {
   );
 }
 
-function formatBirthDate(value) {
-  const s = String(value || "").trim();
-  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) return "Дата не указана";
-
-  const yyyy = m[1];
-  const mm = m[2];
-  const dd = m[3];
-
-  return `${dd}.${mm}.${yyyy}`;
-}
-
 function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
   const [state, setState] = useState({
     loading: false,
@@ -999,23 +1223,32 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
 
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.offset, state.limit, state.q, state.league, state.minBalance, state.maxBalance, state.birthMonth]);
-
+  }, [
+    state.offset,
+    state.limit,
+    state.q,
+    state.league,
+    state.minBalance,
+    state.maxBalance,
+    state.birthMonth,
+  ]);
 
   async function sendBirthdayInvite(user) {
     try {
+      const month = Number(state.birthMonth || 3);
+
       setStatus("Отправляем сообщение...");
 
       const r = await api("/api/admin/send-birthday-invite", {
         initData,
         targetTelegramId: user.telegram_id,
-        month: 3, // март; потом можно сделать выбор месяца
+        month,
         discountText: "скидка 15% на праздник",
       });
 
       if (!r.ok) {
         if (r.error === "NO_BIRTHDAY_IN_MONTH") {
-          setStatus("У этого пользователя нет детей с ДР в марте");
+          setStatus(`У этого пользователя нет детей с ДР в выбранном месяце`);
           return;
         }
         setStatus(`Ошибка рассылки: ${r.error}${r.details ? " | " + r.details : ""}`);
@@ -1027,7 +1260,6 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
       setStatus("Ошибка: " + String(e?.message || e));
     }
   }
-
 
   async function load() {
     setState((p) => ({ ...p, loading: true }));
@@ -1187,57 +1419,57 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
         <div className="list">
           {state.items.map((u) => (
             <motion.div
-                key={u.id || u.telegram_id}
-                className="card tx"
-                layout
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="user-row">
-                  <div className="user-row-left">
-                    <div className="user-row-title">{u.name || "Без имени"}</div>
+              key={u.id || u.telegram_id}
+              className="card tx"
+              layout
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="user-row">
+                <div className="user-row-left">
+                  <div className="user-row-title">{u.name || "Без имени"}</div>
 
-                    <div className="user-row-meta">
-                      <span className="user-chip">ID: {u.telegram_id}</span>
-                      {u.phone ? <span className="user-chip">{u.phone}</span> : null}
-                      {u.league ? (
-                        <span className="user-chip user-chip-accent">{u.league}</span>
-                      ) : null}
-                      <span className="user-chip">Баланс: {Number(u.balance || 0)}</span>
-                      <span className="user-chip">
-                        Потрачено: {Number(u.total_spent || 0).toLocaleString("ru-RU")} ₽
-                      </span>
-                    </div>
-
-                    {Array.isArray(u.children) && u.children.length > 0 ? (
-                      <div className="user-kids">
-                        <div className="user-kids-title">Дети</div>
-
-                        <div className="user-kids-list">
-                          {u.children.map((child, idx) => (
-                            <div className="user-kid-card" key={`${u.telegram_id}-${idx}`}>
-                              <div className="user-kid-name">
-                                {child?.name || "Без имени"}
-                              </div>
-                              <div className="user-kid-date">
-                                {formatBirthDate(child?.birthDate)}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                  <div className="user-row-meta">
+                    <span className="user-chip">ID: {u.telegram_id}</span>
+                    {u.phone ? <span className="user-chip">{u.phone}</span> : null}
+                    {u.league ? (
+                      <span className="user-chip user-chip-accent">{u.league}</span>
                     ) : null}
+                    <span className="user-chip">Баланс: {Number(u.balance || 0)}</span>
+                    <span className="user-chip">
+                      Потрачено: {Number(u.total_spent || 0).toLocaleString("ru-RU")} ₽
+                    </span>
                   </div>
 
-                  <div className="user-row-actions">
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => sendBirthdayInvite(u)}
-                    >
-                      ДР-рассылка
-                    </button>
-                  </div>
+                  {Array.isArray(u.children) && u.children.length > 0 ? (
+                    <div className="user-kids">
+                      <div className="user-kids-title">Дети</div>
+
+                      <div className="user-kids-list">
+                        {u.children.map((child, idx) => (
+                          <div className="user-kid-card" key={`${u.telegram_id}-${idx}`}>
+                            <div className="user-kid-name">
+                              {child?.name || "Без имени"}
+                            </div>
+                            <div className="user-kid-date">
+                              {formatBirthDate(child?.birthDate)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
-              </motion.div>
+
+                <div className="user-row-actions">
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => sendBirthdayInvite(u)}
+                  >
+                    ДР-рассылка
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           ))}
         </div>
       )}
