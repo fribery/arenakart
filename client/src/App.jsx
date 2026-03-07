@@ -94,6 +94,14 @@ function inventoryTypeLabel(type) {
   return type || "Предмет";
 }
 
+  function inventoryEmoji(type) {
+  if (type === "discount") return "🏷️";
+  if (type === "certificate") return "🎟️";
+  if (type === "reward") return "🎁";
+  if (type === "medal") return "🏅";
+  return "📦";
+}
+
 function App() {
   const [status, setStatus] = useState("Загрузка...");
   const [auth, setAuth] = useState(null);
@@ -422,14 +430,6 @@ function App() {
       setStatus("Ошибка: " + String(e?.message || e));
     }
   }
-
-  function inventoryEmoji(type) {
-  if (type === "discount") return "🏷️";
-  if (type === "certificate") return "🎟️";
-  if (type === "reward") return "🎁";
-  if (type === "medal") return "🏅";
-  return "📦";
-}
 
   async function adminRedeemItem() {
     try {
@@ -1108,6 +1108,12 @@ function App() {
           </AnimatePresence>
 
           <Status status={status} />
+          {selectedInventoryItem ? (
+            <InventoryModal
+              item={selectedInventoryItem}
+              onClose={() => setSelectedInventoryItem(null)}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -1464,12 +1470,6 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
       )}
 
       <Status status={status} />
-      {selectedInventoryItem ? (
-        <InventoryModal
-          item={selectedInventoryItem}
-          onClose={() => setSelectedInventoryItem(null)}
-        />
-      ) : null}
     </Page>
   );
 }
