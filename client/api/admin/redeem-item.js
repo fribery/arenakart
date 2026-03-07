@@ -142,29 +142,32 @@ export default async function handler(req, res) {
       return res.status(400).end(JSON.stringify({ ok: false, error: "ITEM_EXPIRED" }));
     }
 
-    const { data: updated, error: updErr } = await supabase
-      .from("inventory_items")
-      .update({
-        status: "used",
-        used_at: new Date().toISOString(),
-      })
-      .eq("id", item.id)
-      .select("id, telegram_id, type, title, status, code, expires_at, used_at")
-      .single();
+const { error: delErr } = await supabase
+  .from("inventory_items")
+  .delete()
+  .eq("id", item.id);
 
-    if (updErr) {
-      return res.status(500).end(JSON.stringify({
-        ok: false,
-        error: "SUPABASE_ERROR",
-        details: updErr.message,
-      }));
-    }
+if (delErr) {
+  return res.status(500).end(JSON.stringify({
+    ok: false,
+    error: "SUPABASE_ERROR",
+    details: delErr.message,
+  }));
+}
 
-    return res.status(200).end(JSON.stringify({
-      ok: true,
-      item: updated,
-    }));
-  } catch (err) {
+return res.status(200).end(JSON.stringify({
+  ok: true,
+  deleted: true,
+  item: {
+    id: item.id,
+    telegram_id: item.telegram_id,
+    type: item.type,
+    title: item.title,
+    code: item.code,
+  },
+}));
+
+} catch (err) {
     return res.status(500).end(JSON.stringify({
       ok: false,
       error: "INTERNAL_ERROR",

@@ -422,6 +422,14 @@ function App() {
     }
   }
 
+  function inventoryEmoji(type) {
+  if (type === "discount") return "🏷️";
+  if (type === "certificate") return "🎟️";
+  if (type === "reward") return "🎁";
+  if (type === "medal") return "🏅";
+  return "📦";
+}
+
   async function adminRedeemItem() {
     try {
       const code = String(admin.redeemCode || "").trim().toUpperCase();
@@ -728,54 +736,34 @@ function App() {
                 </Card>
 
                 <Card className="mt-14">
-                  <div className="section-head">
-                    <div>
-                      <div className="section-title">Инвентарь</div>
-                      <div className="hint">Ваши скидки, сертификаты и награды</div>
-                    </div>
-                    <div className="pill">{inventory.length}</div>
+                <div className="section-head">
+                  <div>
+                    <div className="section-title">Инвентарь</div>
+                    <div className="hint">Нажми на предмет, чтобы открыть детали</div>
                   </div>
+                  <div className="pill">{inventory.length}</div>
+                </div>
 
-                  {inventory.length === 0 ? (
-                    <div className="muted" style={{ marginTop: 10 }}>
-                      Пока пусто
-                    </div>
-                  ) : (
-                    <div className="list">
-                      {inventory.map((item) => (
-                        <div key={item.id} className="card" style={{ padding: 12, marginTop: 10 }}>
-                          <div className="row-between">
-                            <div>
-                              <div className="strong">{item.title || "Предмет"}</div>
-                              <div className="hint">
-                                {inventoryTypeLabel(item.type)} • {inventoryStatusLabel(item.status)}
-                              </div>
-                            </div>
-                            <div className={`pill ${item.status !== "active" ? "pill-muted" : ""}`}>
-                              {inventoryStatusLabel(item.status)}
-                            </div>
-                          </div>
-
-                          {item.description ? (
-                            <div className="hint" style={{ marginTop: 8 }}>
-                              {item.description}
-                            </div>
-                          ) : null}
-
-                          <div className="user-row-meta" style={{ marginTop: 10 }}>
-                            {item.code ? <span className="user-chip">Код: {item.code}</span> : null}
-                            <span className="user-chip">
-                              Выдан: {formatInventoryDate(item.issued_at || item.created_at)}
-                            </span>
-                            <span className="user-chip">
-                              До: {formatInventoryDate(item.expires_at)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </Card>
+                {inventory.length === 0 ? (
+                  <div className="muted" style={{ marginTop: 10 }}>
+                    Пока пусто
+                  </div>
+                ) : (
+                  <div className="inventory-grid">
+                    {inventory.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="inventory-tile"
+                        onClick={() => setSelectedInventoryItem(item)}
+                      >
+                        <div className="inventory-tile-icon">{inventoryEmoji(item.type)}</div>
+                        <div className="inventory-tile-title">{item.title || "Предмет"}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </Card>
 
                 <Card className="mt-14">
                   <div className="row-between">
@@ -1475,7 +1463,63 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
       )}
 
       <Status status={status} />
+      {selectedInventoryItem ? (
+        <InventoryModal
+          item={selectedInventoryItem}
+          onClose={() => setSelectedInventoryItem(null)}
+        />
+      ) : null}
     </Page>
+  );
+}
+
+function InventoryModal({ item, onClose }) {
+  return (
+    <div className="inventory-modal-backdrop" onClick={onClose}>
+      <div
+        className="inventory-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="inventory-modal-head">
+          <div className="inventory-modal-icon">{inventoryEmoji(item.type)}</div>
+          <button type="button" className="inventory-modal-close" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        <div className="inventory-modal-title">{item.title || "Предмет"}</div>
+        <div className="inventory-modal-subtitle">
+          {inventoryTypeLabel(item.type)}
+        </div>
+
+        {item.description ? (
+          <div className="inventory-modal-desc">{item.description}</div>
+        ) : null}
+
+        <div className="inventory-modal-meta">
+          {item.code ? (
+            <div className="inventory-modal-row">
+              <span className="inventory-modal-label">Код</span>
+              <span className="inventory-modal-code">{item.code}</span>
+            </div>
+          ) : null}
+
+          <div className="inventory-modal-row">
+            <span className="inventory-modal-label">Выдан</span>
+            <span>{formatInventoryDate(item.issued_at || item.created_at)}</span>
+          </div>
+
+          <div className="inventory-modal-row">
+            <span className="inventory-modal-label">Действует до</span>
+            <span>{formatInventoryDate(item.expires_at)}</span>
+          </div>
+        </div>
+
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          Закрыть
+        </button>
+      </div>
+    </div>
   );
 }
 
