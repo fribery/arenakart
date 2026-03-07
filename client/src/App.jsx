@@ -102,6 +102,7 @@ function App() {
   const [balance, setBalance] = useState(0);
   const [txs, setTxs] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
 
   const [tab, setTab] = useState("profile");
   const [screen, setScreen] = useState("main");
