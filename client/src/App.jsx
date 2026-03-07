@@ -694,7 +694,6 @@ function App() {
                     <div className="section-head">
                       <div>
                         <div className="section-title">Админ панель</div>
-                        <div className="hint">Начисление/списание по telegramId</div>
                       </div>
 
                       <div className="row" style={{ gap: 8, alignItems: "center" }}>
