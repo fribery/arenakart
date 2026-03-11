@@ -135,6 +135,7 @@ function App() {
   const nearestBooking = getNearestActiveBooking(bookings);
 
   const [bootLoading, setBootLoading] = useState(true);
+  const [bootFade, setBootFade] = useState(false);
 
   const [tab, setTab] = useState("profile");
   const [screen, setScreen] = useState("main"); // main | adminUsers | bookingRequests
@@ -263,8 +264,12 @@ function App() {
       } catch (e) {
         setStatus("Ошибка: " + String(e?.message || e));
       } finally {
-        setBootLoading(false);
-      }
+          setBootFade(true);
+
+          setTimeout(() => {
+            setBootLoading(false);
+          }, 300);
+        }
     }
 
     init().catch(() => {
@@ -625,7 +630,7 @@ function App() {
 
   if (bootLoading) {
     return (
-      <div className="app-splash-screen">
+      <div className={`app-splash-screen ${bootFade ? "fade-out" : ""}`}>
         <div className="app-splash-bg-glow app-splash-bg-glow-1" />
         <div className="app-splash-bg-glow app-splash-bg-glow-2" />
 
@@ -635,7 +640,7 @@ function App() {
             alt="GoKart"
             className="app-splash-logo"
           />
-          
+
           <div className="app-splash-subtitle">Загружаем профиль…</div>
 
           <div className="app-splash-loader">

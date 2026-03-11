@@ -1289,8 +1289,8 @@ html {
 }
 
 .app-splash-logo {
-  width: 250px;
-  height: 250px;
+  width: 340px;
+  height: 340px;
   object-fit: contain;
   filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.14));
   animation: splashLogoIn 0.65s ease;
@@ -1324,11 +1324,11 @@ html {
 
 .app-splash-loader-bar {
   height: 100%;
-  width: 40%;
+  width: 60%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--red), #ff6b6b);
   box-shadow: 0 8px 18px rgba(255,42,42,0.28);
-  animation: splashLoading 1.2s ease-in-out infinite;
+  animation: splashLoading 3.5s cubic-bezier(.4,0,.2,1) infinite;
 }
 
 @keyframes splashFadeUp {
@@ -1371,5 +1371,18 @@ html {
   }
   100% {
     transform: translateY(0px) scale(1);
+  }
+}
+
+.app-splash-screen.fade-out{
+  animation:splashFadeOut .35s ease forwards;
+}
+
+@keyframes splashFadeOut{
+  from{
+    opacity:1;
+  }
+  to{
+    opacity:0;
   }
 }
