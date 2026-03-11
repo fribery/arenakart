@@ -142,9 +142,9 @@ function App() {
   const [qrExpiresAt, setQrExpiresAt] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
 
-  const [showRescheduleModal,setShowRescheduleModal] = useState(false)
-  const [newDate,setNewDate] = useState("")
-  const [newTime,setNewTime] = useState("")
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [newBookingDate, setNewBookingDate] = useState("");
+  const [newBookingTime, setNewBookingTime] = useState("");
 
   const [admin, setAdmin] = useState({
     targetTelegramId: "",
@@ -852,19 +852,66 @@ function App() {
                     <div className="row mt-14">
                       <button
                         className="btn btn-secondary"
-                        onClick={async () => {
-                          const r = await api("/api/bookings-cancel", {
-                            initData: WebApp.initData,
-                            bookingId: nearestBooking.id,
-                          });
+                        onClick={() => {
+                          try {
+                            WebApp.showPopup(
+                              {
+                                title: "Отмена записи",
+                                message: "Вы точно уверены, что хотите отменить запись?",
+                                buttons: [
+                                  { id: "no", type: "cancel", text: "Нет" },
+                                  { id: "yes", type: "destructive", text: "Да, отменить" },
+                                ],
+                              },
+                              async (buttonId) => {
+                                if (buttonId !== "yes") return;
 
-                          if (!r.ok) {
-                            setStatus(`Ошибка отмены: ${r.error}${r.details ? " | " + r.details : ""}`);
-                            return;
+                                try {
+                                  setStatus("Отменяем запись...");
+
+                                  const r = await api("/api/bookings-cancel", {
+                                    initData: WebApp.initData,
+                                    bookingId: nearestBooking.id,
+                                  });
+
+                                  if (!r.ok) {
+                                    setStatus(`Ошибка отмены: ${r.error}${r.details ? " | " + r.details : ""}`);
+                                    return;
+                                  }
+
+                                  await refreshAll();
+                                  setStatus("Запись отменена ✅");
+                                } catch (e) {
+                                  setStatus("Ошибка: " + String(e?.message || e));
+                                }
+                              }
+                            );
+                          } catch {
+                            // fallback если popup недоступен
+                            const ok = window.confirm("Вы точно уверены, что хотите отменить запись?");
+                            if (!ok) return;
+
+                            (async () => {
+                              try {
+                                setStatus("Отменяем запись...");
+
+                                const r = await api("/api/bookings-cancel", {
+                                  initData: WebApp.initData,
+                                  bookingId: nearestBooking.id,
+                                });
+
+                                if (!r.ok) {
+                                  setStatus(`Ошибка отмены: ${r.error}${r.details ? " | " + r.details : ""}`);
+                                  return;
+                                }
+
+                                await refreshAll();
+                                setStatus("Запись отменена ✅");
+                              } catch (e) {
+                                setStatus("Ошибка: " + String(e?.message || e));
+                              }
+                            })();
                           }
-
-                          await refreshAll();
-                          setStatus("Запись отменена ✅");
                         }}
                       >
                         Отменить

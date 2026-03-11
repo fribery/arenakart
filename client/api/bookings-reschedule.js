@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
+export const config = { runtime: "nodejs" };
+
 function getSupabase() {
   return createClient(
     process.env.SUPABASE_URL,
