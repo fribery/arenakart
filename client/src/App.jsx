@@ -1158,7 +1158,7 @@ function App() {
                           onClick={() => setScreen("bookingRequests")}
                           type="button"
                         >
-                          Актуальные заявки
+                          Заявки
                         </button>
 
                         <div className="pill">ADMIN</div>
