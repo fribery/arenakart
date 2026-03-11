@@ -99,10 +99,24 @@ export default async function handler(req, res) {
     const supabase = getSupabase();
 
     const { data, error } = await supabase
-      .from("booking_requests")
-      .select("id, telegram_id, status, title, requested_date, requested_time, guests_count, comment, admin_comment, created_at, updated_at")
-      .eq("status", "pending")
-      .order("created_at", { ascending: false });
+        .from("booking_requests")
+        .select(`
+            id,
+            telegram_id,
+            title,
+            requested_date,
+            requested_time,
+            guests_count,
+            comment,
+            status,
+            created_at,
+            users (
+            name,
+            phone
+            )
+        `)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
 
     if (error) {
       return res.status(500).end(JSON.stringify({

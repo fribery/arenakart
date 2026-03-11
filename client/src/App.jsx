@@ -1160,8 +1160,6 @@ function App() {
                         >
                           Заявки
                         </button>
-
-                        <div className="pill">ADMIN</div>
                       </div>
                     </div>
 
@@ -2287,9 +2285,23 @@ function BookingRequestsScreen({ api, initData, status, setStatus, onBack }) {
             <Card key={reqItem.id}>
               <div className="user-compact-top">
                 <div className="user-compact-main">
-                  <div className="user-compact-name">{reqItem.title || "Запись в картинг"}</div>
-                  <div className="user-compact-sub">ID: {reqItem.telegram_id}</div>
-                </div>
+                    <div className="user-compact-name">
+                      {reqItem.users?.name || "Клиент"}
+                    </div>
+
+                    <div className="user-compact-sub">
+                      ID: {reqItem.telegram_id}
+                    </div>
+
+                    {reqItem.users?.phone ? (
+                      <a
+                        className="user-phone"
+                        href={`tel:${reqItem.users.phone}`}
+                      >
+                        📞 {reqItem.users.phone}
+                      </a>
+                    ) : null}
+                  </div>
                 <div className="pill">PENDING</div>
               </div>
 

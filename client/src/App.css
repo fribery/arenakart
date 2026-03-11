@@ -1176,3 +1176,16 @@ html {
   font-size: 12px;
   font-weight: 900;
 }
+
+.user-phone{
+  display:inline-block;
+  margin-top:6px;
+  font-size:14px;
+  font-weight:600;
+  color:#2b7cff;
+  text-decoration:none;
+}
+
+.user-phone:active{
+  opacity:.7;
+}
