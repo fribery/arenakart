@@ -1695,59 +1695,45 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
           {state.items.map((u) => (
           <motion.div
             key={u.id || u.telegram_id}
-            className="card user-card"
+            className="card user-card-compact"
             layout
-            whileTap={{ scale: 0.985 }}
+            whileTap={{ scale: 0.99 }}
           >
-            <div className="user-card-head">
-              <div className="user-row-title">{u.name || "Без имени"}</div>
+            <div className="user-compact-top">
+              <div className="user-compact-main">
+                <div className="user-compact-name">{u.name || "Без имени"}</div>
+                <div className="user-compact-sub">
+                  ID: {u.telegram_id}
+                  {u.phone ? ` • ${u.phone}` : ""}
+                </div>
+              </div>
+
               {u.league ? (
-                <span className="user-chip user-chip-accent">{u.league}</span>
+                <div className="pill user-compact-pill">{u.league}</div>
               ) : null}
             </div>
 
-            <div className="user-card-grid">
-              <div className="user-info-item">
-                <div className="user-info-label">ID</div>
-                <div className="user-info-value">{u.telegram_id}</div>
-              </div>
-
-              <div className="user-info-item">
-                <div className="user-info-label">Телефон</div>
-                <div className="user-info-value">{u.phone || "—"}</div>
-              </div>
-
-              <div className="user-info-item">
-                <div className="user-info-label">Баланс</div>
-                <div className="user-info-value">{Number(u.balance || 0)}</div>
-              </div>
-
-              <div className="user-info-item">
-                <div className="user-info-label">Потрачено</div>
-                <div className="user-info-value">
-                  {Number(u.total_spent || 0).toLocaleString("ru-RU")} ₽
-                </div>
-              </div>
+            <div className="user-compact-stats">
+              <span>Баланс: {Number(u.balance || 0)}</span>
+              <span>Потрачено: {Number(u.total_spent || 0).toLocaleString("ru-RU")} ₽</span>
             </div>
 
             {Array.isArray(u.children) && u.children.length > 0 ? (
-              <div className="user-kids">
-                <div className="user-kids-title">Дети</div>
-
-                <div className="user-kids-list">
-                  {u.children.map((child, idx) => (
-                    <div className="user-kid-card" key={`${u.telegram_id}-${idx}`}>
-                      <div className="user-kid-name">{child?.name || "Без имени"}</div>
-                      <div className="user-kid-date">{formatBirthDate(child?.birthDate)}</div>
-                    </div>
-                  ))}
-                </div>
+              <div className="user-kids-compact">
+                {u.children.map((child, idx) => (
+                  <div className="user-kid-row" key={`${u.telegram_id}-${idx}`}>
+                    <div className="user-kid-row-name">{child?.name || "Без имени"}</div>
+                    <div className="user-kid-row-date">{formatBirthDate(child?.birthDate)}</div>
+                  </div>
+                ))}
               </div>
-            ) : null}
+            ) : (
+              <div className="user-kids-empty">Детей нет</div>
+            )}
 
-            <div className="user-card-actions">
+            <div className="user-compact-actions">
               <button
-                className="btn btn-secondary btn-compact"
+                className="btn btn-secondary btn-mini"
                 onClick={() => {
                   setBookingModalUser(u);
                   setBookingForm({
@@ -1759,14 +1745,14 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
                   });
                 }}
               >
-                Добавить запись
+                Запись
               </button>
 
               <button
-                className="btn btn-secondary btn-compact"
+                className="btn btn-secondary btn-mini"
                 onClick={() => sendBirthdayInvite(u)}
               >
-                ДР-рассылка
+                ДР
               </button>
             </div>
           </motion.div>
