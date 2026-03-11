@@ -112,6 +112,18 @@ function App() {
   const [inventory, setInventory] = useState([]);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
 
+  const [bookings, setBookings] = useState([]);
+  const [selectedUserForBooking, setSelectedUserForBooking] = useState(null);
+  const [bookingForm, setBookingForm] = useState({
+    title: "Запись в картинг",
+    bookingDate: "",
+    bookingTime: "",
+    guestsCount: "",
+    comment: "",
+  });
+
+  const nearestBooking = getNearestActiveBooking(bookings);
+
   const [tab, setTab] = useState("profile");
   const [screen, setScreen] = useState("main");
 
@@ -209,6 +221,11 @@ function App() {
     });
     if (inv.ok) setInventory(inv.items || []);
 
+    const bk = await api("/api/bookings", {
+      initData: WebApp.initData,
+    });
+    if (bk.ok) setBookings(bk.items || []);
+
     setStatus("Готово");
   }
 
@@ -226,6 +243,22 @@ function App() {
     refreshAll().catch((e) => setStatus("Ошибка: " + String(e?.message || e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+
+  function getNearestActiveBooking(items) {
+    const list = Array.isArray(items) ? items : [];
+
+    const active = list.filter((x) => x?.status === "active");
+    if (active.length === 0) return null;
+
+    const sorted = [...active].sort((a, b) => {
+      const av = `${a.booking_date || ""} ${a.booking_time || ""}`;
+      const bv = `${b.booking_date || ""} ${b.booking_time || ""}`;
+      return av.localeCompare(bv);
+    });
+
+    return sorted[0] || null;
+  }
 
   async function loadQrToken() {
     setStatus("Генерируем QR...");
@@ -766,6 +799,47 @@ function App() {
                 )}
               </Card>
 
+              <Card className="mt-14">
+                <div className="section-head">
+                  <div>
+                    <div className="section-title">Моя запись</div>
+                    <div className="hint">Актуальная запись в картинг</div>
+                  </div>
+                  <div className="pill">BOOKING</div>
+                </div>
+
+                {nearestBooking ? (
+                  <>
+                    <div className="gap" />
+
+                    <div className="row-between">
+                      <div className="muted">Дата</div>
+                      <div className="strong">{formatBirthDate(nearestBooking.booking_date)}</div>
+                    </div>
+
+                    <div className="row-between mt-10">
+                      <div className="muted">Время</div>
+                      <div className="strong">{nearestBooking.booking_time || "—"}</div>
+                    </div>
+
+                    <div className="row-between mt-10">
+                      <div className="muted">Гостей</div>
+                      <div className="strong">{nearestBooking.guests_count || "—"}</div>
+                    </div>
+
+                    {nearestBooking.comment ? (
+                      <div className="hint" style={{ marginTop: 10 }}>
+                        {nearestBooking.comment}
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="muted" style={{ marginTop: 10 }}>
+                    У вас пока нет активной записи
+                  </div>
+                )}
+              </Card>
+
                 <Card className="mt-14">
                   <div className="row-between">
                     <div>
@@ -1204,6 +1278,16 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
     birthMonth: "",
   });
 
+  const [bookingModalUser, setBookingModalUser] = useState(null);
+  const [bookingForm, setBookingForm] = useState({
+    title: "Запись в картинг",
+    bookingDate: "",
+    bookingTime: "",
+    guestsCount: "",
+    comment: "",
+  });
+  const [bookingSaving, setBookingSaving] = useState(false);
+
   const onF = (key) => (e) =>
     setState((p) => ({
       ...p,
@@ -1227,6 +1311,59 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
     state.maxBalance,
     state.birthMonth,
   ]);
+
+  async function createBookingForUser() {
+    try {
+      if (!bookingModalUser?.telegram_id) {
+        setStatus("Не выбран пользователь");
+        return;
+      }
+
+      if (!bookingForm.bookingDate) {
+        setStatus("Выбери дату записи");
+        return;
+      }
+
+      if (!bookingForm.bookingTime) {
+        setStatus("Выбери время записи");
+        return;
+      }
+
+      setBookingSaving(true);
+      setStatus("Сохраняем запись...");
+
+      const r = await api("/api/admin/create-booking", {
+        initData,
+        targetTelegramId: bookingModalUser.telegram_id,
+        title: bookingForm.title || "Запись в картинг",
+        booking_date: bookingForm.bookingDate,
+        booking_time: bookingForm.bookingTime,
+        guests_count: bookingForm.guestsCount ? Number(bookingForm.guestsCount) : null,
+        comment: bookingForm.comment || "",
+      });
+
+      if (!r.ok) {
+        setStatus(`Ошибка записи: ${r.error}${r.details ? " | " + r.details : ""}`);
+        setBookingSaving(false);
+        return;
+      }
+
+      setBookingSaving(false);
+      setBookingModalUser(null);
+      setBookingForm({
+        title: "Запись в картинг",
+        bookingDate: "",
+        bookingTime: "",
+        guestsCount: "",
+        comment: "",
+      });
+
+      setStatus("Запись добавлена ✅");
+    } catch (e) {
+      setBookingSaving(false);
+      setStatus("Ошибка: " + String(e?.message || e));
+    }
+  }
 
   async function sendBirthdayInvite(user) {
     try {
@@ -1458,6 +1595,22 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
                 <div className="user-row-actions">
                   <button
                     className="btn btn-secondary"
+                    onClick={() => {
+                      setBookingModalUser(u);
+                      setBookingForm({
+                        title: "Запись в картинг",
+                        bookingDate: "",
+                        bookingTime: "",
+                        guestsCount: "",
+                        comment: "",
+                      });
+                    }}
+                  >
+                    Добавить запись
+                  </button>
+
+                  <button
+                    className="btn btn-secondary"
                     onClick={() => sendBirthdayInvite(u)}
                   >
                     ДР-рассылка
@@ -1469,6 +1622,20 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
         </div>
       )}
 
+
+      {bookingModalUser ? (
+      <BookingCreateModal
+        user={bookingModalUser}
+        form={bookingForm}
+        setForm={setBookingForm}
+        loading={bookingSaving}
+        onClose={() => {
+          if (bookingSaving) return;
+          setBookingModalUser(null);
+        }}
+        onSubmit={createBookingForUser}
+      />
+    ) : null}
       <Status status={status} />
     </Page>
   );
@@ -1516,6 +1683,98 @@ function InventoryModal({ item, onClose }) {
         <button type="button" className="btn btn-secondary" onClick={onClose}>
           Закрыть
         </button>
+      </div>
+    </div>
+  );
+}
+
+function BookingCreateModal({
+  user,
+  form,
+  setForm,
+  onClose,
+  onSubmit,
+  loading = false,
+}) {
+  return (
+    <div className="inventory-modal-backdrop" onClick={onClose}>
+      <div
+        className="inventory-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="inventory-modal-head">
+          <div className="inventory-modal-icon">📅</div>
+        </div>
+
+        <div className="inventory-modal-title">Добавить запись</div>
+        <div className="inventory-modal-subtitle">
+          {user?.name || "Без имени"} • ID {user?.telegram_id}
+        </div>
+
+        <div className="field">
+          <div className="label">Название</div>
+          <input
+            className="input"
+            value={form.title}
+            onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+            placeholder="Запись в картинг"
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Дата</div>
+          <input
+            className="input"
+            type="date"
+            value={form.bookingDate}
+            onChange={(e) => setForm((p) => ({ ...p, bookingDate: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Время</div>
+          <input
+            className="input"
+            type="time"
+            value={form.bookingTime}
+            onChange={(e) => setForm((p) => ({ ...p, bookingTime: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Количество гостей</div>
+          <input
+            className="input"
+            inputMode="numeric"
+            placeholder="Например, 3"
+            value={form.guestsCount}
+            onChange={(e) => setForm((p) => ({ ...p, guestsCount: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Комментарий</div>
+          <input
+            className="input"
+            placeholder="Например, детский день рождения"
+            value={form.comment}
+            onChange={(e) => setForm((p) => ({ ...p, comment: e.target.value }))}
+          />
+        </div>
+
+        <div className="row">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Отмена
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={onSubmit}
+            disabled={loading}
+          >
+            {loading ? "Сохраняем..." : "Сохранить"}
+          </button>
+        </div>
       </div>
     </div>
   );
