@@ -134,6 +134,8 @@ function App() {
 
   const nearestBooking = getNearestActiveBooking(bookings);
 
+  const [bootLoading, setBootLoading] = useState(true);
+
   const [tab, setTab] = useState("profile");
   const [screen, setScreen] = useState("main"); // main | adminUsers | bookingRequests
 
@@ -244,17 +246,30 @@ function App() {
   }
 
   useEffect(() => {
-    try {
-      WebApp.ready();
-      WebApp.expand();
-    } catch {}
+    async function init() {
+      try {
+        WebApp.ready();
+        WebApp.expand();
+      } catch {}
 
-    if (!inTelegram) {
-      setStatus("Открой приложение в Telegram");
-      return;
+      if (!inTelegram) {
+        setStatus("Открой приложение в Telegram");
+        setBootLoading(false);
+        return;
+      }
+
+      try {
+        await refreshAll();
+      } catch (e) {
+        setStatus("Ошибка: " + String(e?.message || e));
+      } finally {
+        setBootLoading(false);
+      }
     }
 
-    refreshAll().catch((e) => setStatus("Ошибка: " + String(e?.message || e)));
+    init().catch(() => {
+      setBootLoading(false);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -604,6 +619,18 @@ function App() {
         <Card>
           <div className="muted">{status}</div>
         </Card>
+      </Page>
+    );
+  }
+
+  if (bootLoading) {
+    return (
+      <Page>
+        <div className="app-splash">
+          <div className="app-splash-logo">🏁</div>
+          <div className="app-splash-title">ARENA-KART</div>
+          <div className="app-splash-subtitle">Загружаем профиль…</div>
+        </div>
       </Page>
     );
   }
