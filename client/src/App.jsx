@@ -825,28 +825,34 @@ function App() {
 
                 {nearestBooking ? (
                   <>
-                    <div className="gap" />
-
                     <div className="row-between">
                       <div className="muted">Дата</div>
-                      <div className="strong">{formatBirthDate(nearestBooking.booking_date)}</div>
+                      <div className="strong">
+                        {formatBirthDate(nearestBooking.booking_date)}
+                      </div>
                     </div>
 
                     <div className="row-between mt-10">
                       <div className="muted">Время</div>
-                      <div className="strong">{nearestBooking.booking_time || "—"}</div>
+                      <div className="strong">
+                        {nearestBooking.booking_time || "—"}
+                      </div>
                     </div>
 
                     <div className="row-between mt-10">
                       <div className="muted">Гостей</div>
-                      <div className="strong">{nearestBooking.guests_count || "—"}</div>
+                      <div className="strong">
+                        {nearestBooking.guests_count || "—"}
+                      </div>
                     </div>
 
                     {nearestBooking.comment ? (
                       <div className="hint" style={{ marginTop: 10 }}>
                         {nearestBooking.comment}
                       </div>
-                    ): null}
+                    ) : null}
+
+                    {/* КНОПКИ ПОЯВЛЯЮТСЯ ТОЛЬКО ЕСЛИ ЕСТЬ ЗАПИСЬ */}
 
                     <div className="row mt-14">
                       <button
@@ -858,7 +864,7 @@ function App() {
                           });
 
                           if (!r.ok) {
-                            setStatus(`Ошибка отмены: ${r.error}${r.details ? " | " + r.details : ""}`);
+                            setStatus(`Ошибка отмены: ${r.error}`);
                             return;
                           }
 
@@ -882,9 +888,7 @@ function App() {
                     </div>
                   </>
                 ) : (
-                  <div className="muted" style={{ marginTop: 10 }}>
-                    У вас пока нет активной записи
-                  </div>
+                  <div className="muted">У вас пока нет записей</div>
                 )}
 
                 <div className="row mt-14">
