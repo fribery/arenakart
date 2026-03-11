@@ -142,6 +142,10 @@ function App() {
   const [qrExpiresAt, setQrExpiresAt] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
 
+  const [showRescheduleModal,setShowRescheduleModal] = useState(false)
+  const [newDate,setNewDate] = useState("")
+  const [newTime,setNewTime] = useState("")
+
   const [admin, setAdmin] = useState({
     targetTelegramId: "",
     orderAmount: "",
@@ -492,6 +496,48 @@ function App() {
     }
   }
 
+  async function rescheduleMyBooking(bookingId) {
+    try {
+      if (!bookingId) {
+        setStatus("Запись не найдена");
+        return;
+      }
+
+      if (!newBookingDate) {
+        setStatus("Выбери новую дату");
+        return;
+      }
+
+      if (!newBookingTime) {
+        setStatus("Выбери новое время");
+        return;
+      }
+
+      setStatus("Переносим запись...");
+
+      const r = await api("/api/bookings-reschedule", {
+        initData: WebApp.initData,
+        bookingId,
+        booking_date: newBookingDate,
+        booking_time: newBookingTime,
+      });
+
+      if (!r.ok) {
+        setStatus(`Ошибка переноса: ${r.error}${r.details ? " | " + r.details : ""}`);
+        return;
+      }
+
+      setShowRescheduleModal(false);
+      setNewBookingDate("");
+      setNewBookingTime("");
+
+      await refreshAll();
+      setStatus("Запись перенесена ✅");
+    } catch (e) {
+      setStatus("Ошибка: " + String(e?.message || e));
+    }
+  }
+
   const screenVariants = {
     initial: { opacity: 0, y: 10 },
     animate: { opacity: 1, y: 0, transition: { duration: 0.22 } },
@@ -775,7 +821,6 @@ function App() {
                     <div className="section-title">Мои записи</div>
                     <div className="hint">Актуальная запись в картинг</div>
                   </div>
-                  <div className="pill">BOOKING</div>
                 </div>
 
                 {nearestBooking ? (
@@ -801,13 +846,82 @@ function App() {
                       <div className="hint" style={{ marginTop: 10 }}>
                         {nearestBooking.comment}
                       </div>
-                    ) : null}
+                    ): null}
+
+                    <div className="row mt-14">
+                      <button
+                        className="btn btn-secondary"
+                        onClick={async () => {
+                          const r = await api("/api/bookings-cancel", {
+                            initData: WebApp.initData,
+                            bookingId: nearestBooking.id,
+                          });
+
+                          if (!r.ok) {
+                            setStatus(`Ошибка отмены: ${r.error}${r.details ? " | " + r.details : ""}`);
+                            return;
+                          }
+
+                          await refreshAll();
+                          setStatus("Запись отменена ✅");
+                        }}
+                      >
+                        Отменить
+                      </button>
+
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => {
+                          setNewBookingDate(nearestBooking.booking_date || "");
+                          setNewBookingTime(nearestBooking.booking_time || "");
+                          setShowRescheduleModal(true);
+                        }}
+                      >
+                        Перенести
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <div className="muted" style={{ marginTop: 10 }}>
                     У вас пока нет активной записи
                   </div>
                 )}
+
+                <div className="row mt-14">
+
+                <button
+                className="btn btn-secondary"
+                onClick={async () => {
+
+                const r = await api("/api/bookings-cancel", {
+                initData: WebApp.initData,
+                bookingId: nearestBooking.id
+                })
+
+                if(r.ok){
+
+                await refreshAll()
+                setStatus("Запись отменена")
+
+                }
+
+                }}
+                >
+
+                Отменить
+
+                </button>
+
+                <button
+                className="btn btn-primary"
+                onClick={() => setShowRescheduleModal(true)}
+                >
+
+                Перенести
+
+                </button>
+
+                </div>
               </Card>
 
                 <Card className="mt-14">
@@ -1187,6 +1301,22 @@ function App() {
             <InventoryModal
               item={selectedInventoryItem}
               onClose={() => setSelectedInventoryItem(null)}
+            />
+          ) : null}
+
+          {showRescheduleModal && nearestBooking ? (
+            <RescheduleBookingModal
+              booking={nearestBooking}
+              newBookingDate={newBookingDate}
+              setNewBookingDate={setNewBookingDate}
+              newBookingTime={newBookingTime}
+              setNewBookingTime={setNewBookingTime}
+              onClose={() => {
+                setShowRescheduleModal(false);
+                setNewBookingDate("");
+                setNewBookingTime("");
+              }}
+              onSubmit={() => rescheduleMyBooking(nearestBooking.id)}
             />
           ) : null}
         </div>
@@ -1774,6 +1904,64 @@ function BookingCreateModal({
             disabled={loading}
           >
             {loading ? "Сохраняем..." : "Сохранить"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function RescheduleBookingModal({
+  booking,
+  newBookingDate,
+  setNewBookingDate,
+  newBookingTime,
+  setNewBookingTime,
+  onClose,
+  onSubmit,
+}) {
+  return (
+    <div className="inventory-modal-backdrop" onClick={onClose}>
+      <div
+        className="inventory-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="inventory-modal-head">
+          <div className="inventory-modal-icon">📅</div>
+        </div>
+
+        <div className="inventory-modal-title">Перенести запись</div>
+        <div className="inventory-modal-subtitle">
+          {booking?.title || "Запись в картинг"}
+        </div>
+
+        <div className="field">
+          <div className="label">Новая дата</div>
+          <input
+            className="input"
+            type="date"
+            value={newBookingDate}
+            onChange={(e) => setNewBookingDate(e.target.value)}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Новое время</div>
+          <input
+            className="input"
+            type="time"
+            value={newBookingTime}
+            onChange={(e) => setNewBookingTime(e.target.value)}
+          />
+        </div>
+
+        <div className="row mt-14">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Отмена
+          </button>
+          <button type="button" className="btn btn-primary" onClick={onSubmit}>
+            Сохранить
           </button>
         </div>
       </div>
