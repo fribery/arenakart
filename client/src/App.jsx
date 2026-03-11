@@ -772,37 +772,7 @@ function App() {
                 <Card className="mt-14">
                 <div className="section-head">
                   <div>
-                    <div className="section-title">Инвентарь</div>
-                    <div className="hint">Нажми на предмет, чтобы открыть детали</div>
-                  </div>
-                  <div className="pill">{inventory.length}</div>
-                </div>
-
-                {inventory.length === 0 ? (
-                  <div className="muted" style={{ marginTop: 10 }}>
-                    Пока пусто
-                  </div>
-                ) : (
-                  <div className="inventory-grid">
-                    {inventory.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        className="inventory-tile"
-                        onClick={() => setSelectedInventoryItem(item)}
-                      >
-                        <div className="inventory-tile-icon">{inventoryEmoji(item.type)}</div>
-                        <div className="inventory-tile-title">{item.title || "Предмет"}</div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </Card>
-
-              <Card className="mt-14">
-                <div className="section-head">
-                  <div>
-                    <div className="section-title">Моя запись</div>
+                    <div className="section-title">Мои записи</div>
                     <div className="hint">Актуальная запись в картинг</div>
                   </div>
                   <div className="pill">BOOKING</div>
@@ -839,6 +809,37 @@ function App() {
                   </div>
                 )}
               </Card>
+
+                <Card className="mt-14">
+                <div className="section-head">
+                  <div>
+                    <div className="section-title">Инвентарь</div>
+                    <div className="hint">Нажми на предмет, чтобы открыть детали</div>
+                  </div>
+                  <div className="pill">{inventory.length}</div>
+                </div>
+
+                {inventory.length === 0 ? (
+                  <div className="muted" style={{ marginTop: 10 }}>
+                    Пока пусто
+                  </div>
+                ) : (
+                  <div className="inventory-grid">
+                    {inventory.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="inventory-tile"
+                        onClick={() => setSelectedInventoryItem(item)}
+                      >
+                        <div className="inventory-tile-icon">{inventoryEmoji(item.type)}</div>
+                        <div className="inventory-tile-title">{item.title || "Предмет"}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
 
                 <Card className="mt-14">
                   <div className="row-between">
