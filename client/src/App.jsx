@@ -122,10 +122,20 @@ function App() {
     comment: "",
   });
 
+  const [bookingRequests, setBookingRequests] = useState([]);
+  const [showCreateRequestModal, setShowCreateRequestModal] = useState(false);
+  const [requestForm, setRequestForm] = useState({
+    title: "Запись в картинг",
+    requestedDate: "",
+    requestedTime: "",
+    guestsCount: "",
+    comment: "",
+  });
+
   const nearestBooking = getNearestActiveBooking(bookings);
 
   const [tab, setTab] = useState("profile");
-  const [screen, setScreen] = useState("main");
+  const [screen, setScreen] = useState("main"); // main | adminUsers | bookingRequests
 
   const nameRef = useRef(null);
   const phoneRef = useRef(null);
@@ -353,6 +363,49 @@ function App() {
       });
     } catch (e) {
       setStatus("Ошибка сканера: " + String(e?.message || e));
+    }
+  }
+
+  async function createBookingRequest() {
+    try {
+      if (!requestForm.requestedDate) {
+        setStatus("Выбери дату");
+        return;
+      }
+
+      if (!requestForm.requestedTime) {
+        setStatus("Выбери время");
+        return;
+      }
+
+      setStatus("Отправляем заявку...");
+
+      const r = await api("/api/booking-requests-create", {
+        initData: WebApp.initData,
+        title: requestForm.title || "Запись в картинг",
+        requested_date: requestForm.requestedDate,
+        requested_time: requestForm.requestedTime,
+        guests_count: requestForm.guestsCount ? Number(requestForm.guestsCount) : null,
+        comment: requestForm.comment || "",
+      });
+
+      if (!r.ok) {
+        setStatus(`Ошибка заявки: ${r.error}${r.details ? " | " + r.details : ""}`);
+        return;
+      }
+
+      setShowCreateRequestModal(false);
+      setRequestForm({
+        title: "Запись в картинг",
+        requestedDate: "",
+        requestedTime: "",
+        guestsCount: "",
+        comment: "",
+      });
+
+      setStatus("Заявка отправлена ✅");
+    } catch (e) {
+      setStatus("Ошибка: " + String(e?.message || e));
     }
   }
 
@@ -767,6 +820,34 @@ function App() {
     );
   }
 
+  if (screen === "bookingRequests") {
+  if (!auth?.isAdmin) {
+    return (
+      <Page>
+        <Header subtitle="Нет доступа" />
+        <Card>
+          <div className="strong">Этот экран доступен только админам</div>
+          <div className="gap" />
+          <button className="btn btn-secondary" onClick={() => setScreen("main")}>
+            Назад
+          </button>
+        </Card>
+        <Status status={status} />
+      </Page>
+    );
+  }
+
+  return (
+    <BookingRequestsScreen
+      api={api}
+      initData={WebApp.initData}
+      status={status}
+      setStatus={setStatus}
+      onBack={() => setScreen("main")}
+    />
+  );
+}
+
   return (
     <div className="page">
       <div className="container">
@@ -849,7 +930,7 @@ function App() {
                       </div>
                     ) : null}
 
-                    <div className="row mt-14">
+                    {/* <div className="row mt-14">
                       <button
                         className="btn btn-secondary"
                         onClick={() => {
@@ -927,13 +1008,31 @@ function App() {
                       >
                         Перенести
                       </button>
-                    </div>
+                    </div> */}
+                    
                   </>
                 ) : (
                   <div className="muted" style={{ marginTop: 10 }}>
                     У вас пока нет активной записи
                   </div>
                 )}
+                <div className="row mt-14">
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setRequestForm({
+                        title: "Запись в картинг",
+                        requestedDate: "",
+                        requestedTime: "",
+                        guestsCount: "",
+                        comment: "",
+                      });
+                      setShowCreateRequestModal(true);
+                    }}
+                  >
+                    Записаться на сеанс
+                  </button>
+                </div>
               </Card>
 
                 <Card className="mt-14">
@@ -1053,6 +1152,15 @@ function App() {
                         >
                           Пользователи
                         </button>
+
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => setScreen("bookingRequests")}
+                          type="button"
+                        >
+                          Актуальные заявки
+                        </button>
+
                         <div className="pill">ADMIN</div>
                       </div>
                     </div>
@@ -1329,6 +1437,15 @@ function App() {
                 setNewBookingTime("");
               }}
               onSubmit={() => rescheduleMyBooking(nearestBooking.id)}
+            />
+          ) : null}
+
+          {showCreateRequestModal ? (
+            <BookingRequestCreateModal
+              form={requestForm}
+              setForm={setRequestForm}
+              onClose={() => setShowCreateRequestModal(false)}
+              onSubmit={createBookingRequest}
             />
           ) : null}
         </div>
@@ -1960,6 +2077,364 @@ function RescheduleBookingModal({
             type="time"
             value={newBookingTime}
             onChange={(e) => setNewBookingTime(e.target.value)}
+          />
+        </div>
+
+        <div className="row mt-14">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Отмена
+          </button>
+          <button type="button" className="btn btn-primary" onClick={onSubmit}>
+            Сохранить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BookingRequestCreateModal({
+  form,
+  setForm,
+  onClose,
+  onSubmit,
+}) {
+  return (
+    <div className="inventory-modal-backdrop" onClick={onClose}>
+      <div
+        className="inventory-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="inventory-modal-head">
+          <div className="inventory-modal-icon">🗓️</div>
+        </div>
+
+        <div className="inventory-modal-title">Записаться на сеанс</div>
+        <div className="inventory-modal-subtitle">
+          Оставьте заявку, мы свяжемся с вами
+        </div>
+
+        <div className="field">
+          <div className="label">Название</div>
+          <input
+            className="input"
+            value={form.title}
+            onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+            placeholder="Запись в картинг"
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Желаемая дата</div>
+          <input
+            className="input"
+            type="date"
+            value={form.requestedDate}
+            onChange={(e) => setForm((p) => ({ ...p, requestedDate: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Желаемое время</div>
+          <input
+            className="input"
+            type="time"
+            value={form.requestedTime}
+            onChange={(e) => setForm((p) => ({ ...p, requestedTime: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Количество гостей</div>
+          <input
+            className="input"
+            inputMode="numeric"
+            value={form.guestsCount}
+            onChange={(e) => setForm((p) => ({ ...p, guestsCount: e.target.value }))}
+            placeholder="Например, 3"
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Комментарий</div>
+          <input
+            className="input"
+            value={form.comment}
+            onChange={(e) => setForm((p) => ({ ...p, comment: e.target.value }))}
+            placeholder="Например, детский день рождения"
+          />
+        </div>
+
+        <div className="row mt-14">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Отмена
+          </button>
+          <button type="button" className="btn btn-primary" onClick={onSubmit}>
+            Отправить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BookingRequestsScreen({ api, initData, status, setStatus, onBack }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [form, setForm] = useState({
+    bookingDate: "",
+    bookingTime: "",
+    guestsCount: "",
+    comment: "",
+    adminComment: "",
+  });
+
+  async function load() {
+    try {
+      setLoading(true);
+      setStatus("Загружаем заявки...");
+
+      const r = await api("/api/admin/booking-requests", {
+        initData,
+      });
+
+      if (!r.ok) {
+        setStatus(`Ошибка заявок: ${r.error}${r.details ? " | " + r.details : ""}`);
+        setLoading(false);
+        return;
+      }
+
+      setItems(Array.isArray(r.items) ? r.items : []);
+      setLoading(false);
+      setStatus("Готово");
+    } catch (e) {
+      setLoading(false);
+      setStatus("Ошибка: " + String(e?.message || e));
+    }
+  }
+
+  useEffect(() => {
+    load().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function processRequest(action, reqItem) {
+    try {
+      setStatus("Обрабатываем заявку...");
+
+      const payload = {
+        initData,
+        requestId: reqItem.id,
+        action,
+        admin_comment: form.adminComment || "",
+      };
+
+      if (action === "change") {
+        payload.booking_date = form.bookingDate;
+        payload.booking_time = form.bookingTime;
+        payload.guests_count = form.guestsCount ? Number(form.guestsCount) : null;
+        payload.comment = form.comment || "";
+      }
+
+      const r = await api("/api/admin/booking-requests-process", payload);
+
+      if (!r.ok) {
+        setStatus(`Ошибка обработки: ${r.error}${r.details ? " | " + r.details : ""}`);
+        return;
+      }
+
+      setSelectedRequest(null);
+      setForm({
+        bookingDate: "",
+        bookingTime: "",
+        guestsCount: "",
+        comment: "",
+        adminComment: "",
+      });
+
+      await load();
+      setStatus("Заявка обработана ✅");
+    } catch (e) {
+      setStatus("Ошибка: " + String(e?.message || e));
+    }
+  }
+
+  return (
+    <Page>
+      <Header subtitle="Админ • Актуальные заявки" />
+
+      <Card>
+        <div className="row-between" style={{ alignItems: "center" }}>
+          <div>
+            <div className="section-title">Актуальные заявки</div>
+            <div className="hint">Заявки из приложения от клиентов</div>
+          </div>
+
+          <button className="btn btn-secondary btn-small" onClick={onBack} type="button">
+            Назад
+          </button>
+        </div>
+      </Card>
+
+      {items.length === 0 ? (
+        <Card>
+          <div className="muted">{loading ? "Загрузка..." : "Новых заявок нет"}</div>
+        </Card>
+      ) : (
+        <div className="list">
+          {items.map((reqItem) => (
+            <Card key={reqItem.id}>
+              <div className="user-compact-top">
+                <div className="user-compact-main">
+                  <div className="user-compact-name">{reqItem.title || "Запись в картинг"}</div>
+                  <div className="user-compact-sub">ID: {reqItem.telegram_id}</div>
+                </div>
+                <div className="pill">PENDING</div>
+              </div>
+
+              <div className="user-compact-stats" style={{ marginTop: 10 }}>
+                <span>Дата: {formatBirthDate(reqItem.requested_date)}</span>
+                <span>Время: {reqItem.requested_time}</span>
+                <span>Гостей: {reqItem.guests_count || "—"}</span>
+              </div>
+
+              {reqItem.comment ? (
+                <div className="hint" style={{ marginTop: 10 }}>
+                  {reqItem.comment}
+                </div>
+              ) : null}
+
+              <div className="user-compact-actions" style={{ marginTop: 12 }}>
+                <button
+                  className="btn btn-secondary btn-mini"
+                  onClick={() => {
+                    setForm({
+                      bookingDate: reqItem.requested_date || "",
+                      bookingTime: reqItem.requested_time || "",
+                      guestsCount: reqItem.guests_count || "",
+                      comment: reqItem.comment || "",
+                      adminComment: "",
+                    });
+                    processRequest("approve", reqItem);
+                  }}
+                >
+                  Подтвердить
+                </button>
+
+                <button
+                  className="btn btn-secondary btn-mini"
+                  onClick={() => {
+                    setForm((p) => ({ ...p, adminComment: "" }));
+                    processRequest("reject", reqItem);
+                  }}
+                >
+                  Отказать
+                </button>
+
+                <button
+                  className="btn btn-primary btn-mini"
+                  onClick={() => {
+                    setSelectedRequest(reqItem);
+                    setForm({
+                      bookingDate: reqItem.requested_date || "",
+                      bookingTime: reqItem.requested_time || "",
+                      guestsCount: reqItem.guests_count || "",
+                      comment: reqItem.comment || "",
+                      adminComment: "",
+                    });
+                  }}
+                >
+                  Изменить
+                </button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {selectedRequest ? (
+        <BookingRequestProcessModal
+          reqItem={selectedRequest}
+          form={form}
+          setForm={setForm}
+          onClose={() => setSelectedRequest(null)}
+          onSubmit={() => processRequest("change", selectedRequest)}
+        />
+      ) : null}
+
+      <Status status={status} />
+    </Page>
+  );
+}
+
+function BookingRequestProcessModal({
+  reqItem,
+  form,
+  setForm,
+  onClose,
+  onSubmit,
+}) {
+  return (
+    <div className="inventory-modal-backdrop" onClick={onClose}>
+      <div
+        className="inventory-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="inventory-modal-head">
+          <div className="inventory-modal-icon">📞</div>
+        </div>
+
+        <div className="inventory-modal-title">Изменить заявку</div>
+        <div className="inventory-modal-subtitle">
+          ID {reqItem?.telegram_id}
+        </div>
+
+        <div className="field">
+          <div className="label">Дата</div>
+          <input
+            className="input"
+            type="date"
+            value={form.bookingDate}
+            onChange={(e) => setForm((p) => ({ ...p, bookingDate: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Время</div>
+          <input
+            className="input"
+            type="time"
+            value={form.bookingTime}
+            onChange={(e) => setForm((p) => ({ ...p, bookingTime: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Гостей</div>
+          <input
+            className="input"
+            inputMode="numeric"
+            value={form.guestsCount}
+            onChange={(e) => setForm((p) => ({ ...p, guestsCount: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Комментарий</div>
+          <input
+            className="input"
+            value={form.comment}
+            onChange={(e) => setForm((p) => ({ ...p, comment: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Комментарий админа</div>
+          <input
+            className="input"
+            value={form.adminComment}
+            onChange={(e) => setForm((p) => ({ ...p, adminComment: e.target.value }))}
           />
         </div>
 
