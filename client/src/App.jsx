@@ -2285,23 +2285,23 @@ function BookingRequestsScreen({ api, initData, status, setStatus, onBack }) {
             <Card key={reqItem.id}>
               <div className="user-compact-top">
                 <div className="user-compact-main">
-                    <div className="user-compact-name">
-                      {reqItem.users?.name || "Клиент"}
-                    </div>
-
-                    <div className="user-compact-sub">
-                      ID: {reqItem.telegram_id}
-                    </div>
-
-                    {reqItem.users?.phone ? (
-                      <a
-                        className="user-phone"
-                        href={`tel:${reqItem.users.phone}`}
-                      >
-                        📞 {reqItem.users.phone}
-                      </a>
-                    ) : null}
+                  <div className="user-compact-name">
+                    {reqItem.profile?.name || "Клиент"}
                   </div>
+
+                  <div className="user-compact-sub">
+                    ID: {reqItem.telegram_id}
+                  </div>
+
+                  {reqItem.profile?.phone ? (
+                    <a
+                      className="user-phone"
+                      href={`tel:${reqItem.profile.phone}`}
+                    >
+                      📞 {reqItem.profile.phone}
+                    </a>
+                  ) : null}
+                </div>
                 <div className="pill">PENDING</div>
               </div>
 

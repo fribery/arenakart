@@ -72,7 +72,11 @@ export default async function handler(req, res) {
 
     let body = req.body;
     if (typeof body === "string") {
-      try { body = JSON.parse(body); } catch { body = null; }
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = null;
+      }
     }
 
     const initData = body?.initData;
@@ -86,7 +90,9 @@ export default async function handler(req, res) {
     }
 
     let user = null;
-    try { user = check.data.user ? JSON.parse(check.data.user) : null; } catch {}
+    try {
+      user = check.data.user ? JSON.parse(check.data.user) : null;
+    } catch {}
 
     if (!user?.id) {
       return res.status(400).end(JSON.stringify({ ok: false, error: "NO_USER" }));
@@ -98,40 +104,73 @@ export default async function handler(req, res) {
 
     const supabase = getSupabase();
 
-    const { data, error } = await supabase
-        .from("booking_requests")
-        .select(`
-            id,
-            telegram_id,
-            title,
-            requested_date,
-            requested_time,
-            guests_count,
-            comment,
-            status,
-            created_at,
-            users (
-            name,
-            phone
-            )
-        `)
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
+    const { data: requests, error: reqErr } = await supabase
+      .from("booking_requests")
+      .select(
+        "id, telegram_id, status, title, requested_date, requested_time, guests_count, comment, admin_comment, created_at, updated_at"
+      )
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
 
-    if (error) {
-      return res.status(500).end(JSON.stringify({
-        ok: false,
-        error: "SUPABASE_ERROR",
-        details: error.message,
-      }));
+    if (reqErr) {
+      return res.status(500).end(
+        JSON.stringify({
+          ok: false,
+          error: "SUPABASE_ERROR",
+          details: reqErr.message,
+        })
+      );
     }
 
-    return res.status(200).end(JSON.stringify({ ok: true, items: data || [] }));
+    const itemsBase = requests || [];
+    const telegramIds = [...new Set(itemsBase.map((x) => x.telegram_id).filter(Boolean))];
+
+    let profileMap = new Map();
+
+    if (telegramIds.length > 0) {
+      const { data: profiles, error: profErr } = await supabase
+        .from("profiles")
+        .select("telegram_id, name, phone")
+        .in("telegram_id", telegramIds);
+
+      if (profErr) {
+        return res.status(500).end(
+          JSON.stringify({
+            ok: false,
+            error: "SUPABASE_ERROR",
+            details: profErr.message,
+          })
+        );
+      }
+
+      profileMap = new Map(
+        (profiles || []).map((p) => [
+          p.telegram_id,
+          {
+            name: p.name || null,
+            phone: p.phone || null,
+          },
+        ])
+      );
+    }
+
+    const items = itemsBase.map((item) => {
+      const profile = profileMap.get(item.telegram_id) || { name: null, phone: null };
+
+      return {
+        ...item,
+        profile,
+      };
+    });
+
+    return res.status(200).end(JSON.stringify({ ok: true, items }));
   } catch (err) {
-    return res.status(500).end(JSON.stringify({
-      ok: false,
-      error: "INTERNAL_ERROR",
-      details: String(err?.message || err),
-    }));
+    return res.status(500).end(
+      JSON.stringify({
+        ok: false,
+        error: "INTERNAL_ERROR",
+        details: String(err?.message || err),
+      })
+    );
   }
 }
