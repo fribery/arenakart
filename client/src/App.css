@@ -1289,8 +1289,8 @@ html {
 }
 
 .app-splash-logo {
-  width: 124px;
-  height: 124px;
+  width: 250px;
+  height: 250px;
   object-fit: contain;
   filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.14));
   animation: splashLogoIn 0.65s ease;
