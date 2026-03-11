@@ -625,13 +625,24 @@ function App() {
 
   if (bootLoading) {
     return (
-      <Page>
+      <div className="app-splash-screen">
+        <div className="app-splash-bg-glow app-splash-bg-glow-1" />
+        <div className="app-splash-bg-glow app-splash-bg-glow-2" />
+
         <div className="app-splash">
-          <div className="app-splash-logo">🏁</div>
-          <div className="app-splash-title">ARENA-KART</div>
+          <img
+            src="/logo.png"
+            alt="GoKart"
+            className="app-splash-logo"
+          />
+          
           <div className="app-splash-subtitle">Загружаем профиль…</div>
+
+          <div className="app-splash-loader">
+            <div className="app-splash-loader-bar" />
+          </div>
         </div>
-      </Page>
+      </div>
     );
   }
 
