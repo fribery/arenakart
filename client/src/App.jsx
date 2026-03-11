@@ -818,32 +818,29 @@ function App() {
                 <Card className="mt-14">
                 <div className="section-head">
                   <div>
-                    <div className="section-title">Мои записи</div>
+                    <div className="section-title">Моя запись</div>
                     <div className="hint">Актуальная запись в картинг</div>
                   </div>
+                  <div className="pill">BOOKING</div>
                 </div>
 
                 {nearestBooking ? (
                   <>
+                    <div className="gap" />
+
                     <div className="row-between">
                       <div className="muted">Дата</div>
-                      <div className="strong">
-                        {formatBirthDate(nearestBooking.booking_date)}
-                      </div>
+                      <div className="strong">{formatBirthDate(nearestBooking.booking_date)}</div>
                     </div>
 
                     <div className="row-between mt-10">
                       <div className="muted">Время</div>
-                      <div className="strong">
-                        {nearestBooking.booking_time || "—"}
-                      </div>
+                      <div className="strong">{nearestBooking.booking_time || "—"}</div>
                     </div>
 
                     <div className="row-between mt-10">
                       <div className="muted">Гостей</div>
-                      <div className="strong">
-                        {nearestBooking.guests_count || "—"}
-                      </div>
+                      <div className="strong">{nearestBooking.guests_count || "—"}</div>
                     </div>
 
                     {nearestBooking.comment ? (
@@ -851,8 +848,6 @@ function App() {
                         {nearestBooking.comment}
                       </div>
                     ) : null}
-
-                    {/* КНОПКИ ПОЯВЛЯЮТСЯ ТОЛЬКО ЕСЛИ ЕСТЬ ЗАПИСЬ */}
 
                     <div className="row mt-14">
                       <button
@@ -864,7 +859,7 @@ function App() {
                           });
 
                           if (!r.ok) {
-                            setStatus(`Ошибка отмены: ${r.error}`);
+                            setStatus(`Ошибка отмены: ${r.error}${r.details ? " | " + r.details : ""}`);
                             return;
                           }
 
@@ -888,44 +883,10 @@ function App() {
                     </div>
                   </>
                 ) : (
-                  <div className="muted">У вас пока нет записей</div>
+                  <div className="muted" style={{ marginTop: 10 }}>
+                    У вас пока нет активной записи
+                  </div>
                 )}
-
-                <div className="row mt-14">
-
-                <button
-                className="btn btn-secondary"
-                onClick={async () => {
-
-                const r = await api("/api/bookings-cancel", {
-                initData: WebApp.initData,
-                bookingId: nearestBooking.id
-                })
-
-                if(r.ok){
-
-                await refreshAll()
-                setStatus("Запись отменена")
-
-                }
-
-                }}
-                >
-
-                Отменить
-
-                </button>
-
-                <button
-                className="btn btn-primary"
-                onClick={() => setShowRescheduleModal(true)}
-                >
-
-                Перенести
-
-                </button>
-
-                </div>
               </Card>
 
                 <Card className="mt-14">
