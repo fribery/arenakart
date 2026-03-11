@@ -1693,75 +1693,84 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
       ) : (
         <div className="list">
           {state.items.map((u) => (
-            <motion.div
-              key={u.id || u.telegram_id}
-              className="card tx"
-              layout
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="user-row">
-                <div className="user-row-left">
-                  <div className="user-row-title">{u.name || "Без имени"}</div>
+          <motion.div
+            key={u.id || u.telegram_id}
+            className="card user-card"
+            layout
+            whileTap={{ scale: 0.985 }}
+          >
+            <div className="user-card-head">
+              <div className="user-row-title">{u.name || "Без имени"}</div>
+              {u.league ? (
+                <span className="user-chip user-chip-accent">{u.league}</span>
+              ) : null}
+            </div>
 
-                  <div className="user-row-meta">
-                    <span className="user-chip">ID: {u.telegram_id}</span>
-                    {u.phone ? <span className="user-chip">{u.phone}</span> : null}
-                    {u.league ? (
-                      <span className="user-chip user-chip-accent">{u.league}</span>
-                    ) : null}
-                    <span className="user-chip">Баланс: {Number(u.balance || 0)}</span>
-                    <span className="user-chip">
-                      Потрачено: {Number(u.total_spent || 0).toLocaleString("ru-RU")} ₽
-                    </span>
-                  </div>
+            <div className="user-card-grid">
+              <div className="user-info-item">
+                <div className="user-info-label">ID</div>
+                <div className="user-info-value">{u.telegram_id}</div>
+              </div>
 
-                  {Array.isArray(u.children) && u.children.length > 0 ? (
-                    <div className="user-kids">
-                      <div className="user-kids-title">Дети</div>
+              <div className="user-info-item">
+                <div className="user-info-label">Телефон</div>
+                <div className="user-info-value">{u.phone || "—"}</div>
+              </div>
 
-                      <div className="user-kids-list">
-                        {u.children.map((child, idx) => (
-                          <div className="user-kid-card" key={`${u.telegram_id}-${idx}`}>
-                            <div className="user-kid-name">
-                              {child?.name || "Без имени"}
-                            </div>
-                            <div className="user-kid-date">
-                              {formatBirthDate(child?.birthDate)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
+              <div className="user-info-item">
+                <div className="user-info-label">Баланс</div>
+                <div className="user-info-value">{Number(u.balance || 0)}</div>
+              </div>
 
-                <div className="user-row-actions">
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => {
-                      setBookingModalUser(u);
-                      setBookingForm({
-                        title: "Запись в картинг",
-                        bookingDate: "",
-                        bookingTime: "",
-                        guestsCount: "",
-                        comment: "",
-                      });
-                    }}
-                  >
-                    Добавить запись
-                  </button>
-
-                  <button
-                    className="btn btn-secondary"
-                    onClick={() => sendBirthdayInvite(u)}
-                  >
-                    ДР-рассылка
-                  </button>
+              <div className="user-info-item">
+                <div className="user-info-label">Потрачено</div>
+                <div className="user-info-value">
+                  {Number(u.total_spent || 0).toLocaleString("ru-RU")} ₽
                 </div>
               </div>
-            </motion.div>
-          ))}
+            </div>
+
+            {Array.isArray(u.children) && u.children.length > 0 ? (
+              <div className="user-kids">
+                <div className="user-kids-title">Дети</div>
+
+                <div className="user-kids-list">
+                  {u.children.map((child, idx) => (
+                    <div className="user-kid-card" key={`${u.telegram_id}-${idx}`}>
+                      <div className="user-kid-name">{child?.name || "Без имени"}</div>
+                      <div className="user-kid-date">{formatBirthDate(child?.birthDate)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="user-card-actions">
+              <button
+                className="btn btn-secondary btn-compact"
+                onClick={() => {
+                  setBookingModalUser(u);
+                  setBookingForm({
+                    title: "Запись в картинг",
+                    bookingDate: "",
+                    bookingTime: "",
+                    guestsCount: "",
+                    comment: "",
+                  });
+                }}
+              >
+                Добавить запись
+              </button>
+
+              <button
+                className="btn btn-secondary btn-compact"
+                onClick={() => sendBirthdayInvite(u)}
+              >
+                ДР-рассылка
+              </button>
+            </div>
+          </motion.div>
+        ))}
         </div>
       )}
 
