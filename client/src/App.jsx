@@ -1756,10 +1756,10 @@ function AdminUsersScreen({ api, initData, status, setStatus, onBack }) {
             <div className="label">Лига</div>
             <select className="input" value={state.league} onChange={onF("league")}>
               <option value="">Все</option>
-              <option value="Rookie">Rookie</option>
-              <option value="Pro">Pro</option>
-              <option value="Elite">Elite</option>
-              <option value="Legend">Legend</option>
+              <option value="Новичок">Rookie</option>
+              <option value="Любитель">Pro</option>
+              <option value="Профессионал">Elite</option>
+              <option value="Супер Гонщик">Legend</option>
             </select>
           </div>
 
