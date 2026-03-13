@@ -1301,14 +1301,8 @@ function App() {
                   </div>
                 </Card>
 
-                {auth?.isAdmin && (
-                  <Card className="mt-14">
-                    <div className="section-head">
-                      <div>
-                        <div className="section-title">Админ панель</div>
-                      </div>
-
-                      <div className="admin-top-actions">
+                <Card>
+                  <div className="admin-top-actions">
                         <button
                           className="btn btn-secondary btn-admin-top"
                           onClick={() => setScreen("adminUsers")}
@@ -1333,6 +1327,40 @@ function App() {
                           Записи
                         </button> 
                       </div>
+                </Card>
+
+                {auth?.isAdmin && (
+                  <Card className="mt-14">
+                    <div className="section-head">
+                      <div>
+                        <div className="section-title">Админ панель</div>
+                      </div>
+
+                      {/* <div className="admin-top-actions">
+                        <button
+                          className="btn btn-secondary btn-admin-top"
+                          onClick={() => setScreen("adminUsers")}
+                          type="button"
+                        >
+                          Юзеры
+                        </button>
+
+                        <button
+                          className="btn btn-secondary btn-admin-top"
+                          onClick={() => setScreen("bookingRequests")}
+                          type="button"
+                        >
+                          Заявки
+                        </button>
+
+                        <button
+                          className="btn btn-secondary btn-admin-top"
+                          onClick={() => setScreen("adminBookings")}
+                          type="button"
+                        >
+                          Записи
+                        </button> 
+                      </div> */}
                     </div>
 
                     <div className="field">
