@@ -230,6 +230,25 @@ export default async function handler(req, res) {
       if (!txErr) bonusTx = tx;
     }
 
+    const adminIds = getAdminTelegramIds(process.env.ADMIN_TG_IDS || "");
+
+    if (isFirstRegistration && adminIds.length > 0) {
+      const childrenCount = Array.isArray(children) ? children.length : 0;
+
+      const text =
+        `🆕 Новая регистрация в GoKart\n\n` +
+        `👤 Имя: ${profile?.name || name || "—"}\n` +
+        `📞 Телефон: ${profile?.phone || phone || "—"}\n` +
+        `🆔 Telegram ID: ${telegramId}\n` +
+        `👶 Детей: ${childrenCount}\n` +
+        `${user?.username ? `🔗 @${user.username}\n` : ""}` +
+        `\nОткройте админку, чтобы посмотреть профиль.`;
+
+      try {
+        await notifyAllAdmins(botToken, adminIds, text);
+      } catch {}
+    }
+
     return res.status(200).end(
       JSON.stringify({ ok: true, profile, bonusTx })
     );

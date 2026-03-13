@@ -121,6 +121,12 @@ export default async function handler(req, res) {
     const telegramId = user.id;
     const supabase = getSupabase();
 
+    const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, phone")
+    .eq("telegram_id", telegramId)
+    .maybeSingle();
+
     const { data, error } = await supabase
       .from("booking_requests")
       .insert({
@@ -141,6 +147,25 @@ export default async function handler(req, res) {
         error: "SUPABASE_ERROR",
         details: error.message,
       }));
+    }
+
+    const adminIds = getAdminTelegramIds(process.env.ADMIN_TG_IDS || "");
+
+    if (adminIds.length > 0) {
+      const text =
+        `📥 Новая заявка на картинг\n\n` +
+        `👤 Клиент: ${profile?.name || "—"}\n` +
+        `📞 Телефон: ${profile?.phone || "—"}\n` +
+        `🆔 Telegram ID: ${telegramId}\n` +
+        `📅 Дата: ${requestedDate}\n` +
+        `🕒 Время: ${requestedTime}\n` +
+        `${guestsCount ? `👥 Гостей: ${guestsCount}\n` : ""}` +
+        `${comment ? `💬 ${comment}\n` : ""}` +
+        `\nПроверьте экран "Актуальные заявки".`;
+
+      try {
+        await notifyAllAdmins(botToken, adminIds, text);
+      } catch {}
     }
 
     return res.status(200).end(JSON.stringify({ ok: true, request: data }));
