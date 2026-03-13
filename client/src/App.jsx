@@ -241,7 +241,8 @@ function App() {
     comment: "",
   });
 
-  const nearestBooking = getNearestActiveBooking(bookings);
+  const upcomingBookings = getUpcomingBookings(bookings);
+  const nearestBooking = upcomingBookings[0] || null;
 
   const [bootLoading, setBootLoading] = useState(true);
   const [bootFade, setBootFade] = useState(false);
@@ -350,7 +351,10 @@ function App() {
     const bk = await api("/api/bookings", {
       initData: WebApp.initData,
     });
-    if (bk.ok) setBookings(bk.items || []);
+    if (bk.ok) {
+      const filtered = (bk.items || []).filter(isUpcomingBooking);
+      setBookings(filtered);
+    }
 
     setStatus("Готово");
   }
@@ -391,17 +395,47 @@ function App() {
   function getNearestActiveBooking(items) {
     const list = Array.isArray(items) ? items : [];
 
-    const active = list.filter((x) => x?.status === "active");
-    if (active.length === 0) return null;
+    const upcoming = list.filter(isUpcomingBooking);
+    if (upcoming.length === 0) return null;
 
-    const sorted = [...active].sort((a, b) => {
-      const av = `${a.booking_date || ""} ${a.booking_time || ""}`;
-      const bv = `${b.booking_date || ""} ${b.booking_time || ""}`;
+    const sorted = [...upcoming].sort((a, b) => {
+      const av = `${a?.booking_date || ""} ${a?.booking_time || ""}`;
+      const bv = `${b?.booking_date || ""} ${b?.booking_time || ""}`;
       return av.localeCompare(bv);
     });
 
     return sorted[0] || null;
   }
+
+  function isUpcomingBooking(booking) {
+  if (!booking) return false;
+
+  const status = String(booking.status || "");
+  if (!["active", "approved", "changed"].includes(status)) return false;
+
+  const dateStr = String(booking.booking_date || "").trim();
+  const timeStr = String(booking.booking_time || "").trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+  if (!/^\d{2}:\d{2}$/.test(timeStr)) return false;
+
+  const dt = new Date(`${dateStr}T${timeStr}:00`);
+  if (Number.isNaN(dt.getTime())) return false;
+
+  return dt.getTime() > Date.now();
+}
+
+function getUpcomingBookings(items) {
+  const list = Array.isArray(items) ? items : [];
+
+  return list
+    .filter(isUpcomingBooking)
+    .sort((a, b) => {
+      const av = `${a?.booking_date || ""} ${a?.booking_time || ""}`;
+      const bv = `${b?.booking_date || ""} ${b?.booking_time || ""}`;
+      return av.localeCompare(bv);
+    });
+}
 
   async function loadQrToken() {
     setStatus("Генерируем QR...");
@@ -1121,120 +1155,42 @@ function App() {
                     <div className="section-title">Моя запись</div>
                     <div className="hint">Актуальная запись в картинг</div>
                   </div>
-                  <div className="pill">BOOKING</div>
+                  <div className="pill">БРОНЬ</div>
                 </div>
 
-                {nearestBooking ? (
-                  <>
-                    <div className="gap" />
+                {upcomingBookings.length > 0 ? (
+                  <div className="list" style={{ marginTop: 12 }}>
+                    {upcomingBookings.map((booking) => (
+                      <div key={booking.id} className="booking-user-card">
+                        <div className="row-between">
+                          <div className="muted">Дата</div>
+                          <div className="strong">{formatBirthDate(booking.booking_date)}</div>
+                        </div>
 
-                    <div className="row-between">
-                      <div className="muted">Дата</div>
-                      <div className="strong">{formatBirthDate(nearestBooking.booking_date)}</div>
-                    </div>
+                        <div className="row-between mt-10">
+                          <div className="muted">Время</div>
+                          <div className="strong">{booking.booking_time || "—"}</div>
+                        </div>
 
-                    <div className="row-between mt-10">
-                      <div className="muted">Время</div>
-                      <div className="strong">{nearestBooking.booking_time || "—"}</div>
-                    </div>
+                        <div className="row-between mt-10">
+                          <div className="muted">Гостей</div>
+                          <div className="strong">{booking.guests_count || "—"}</div>
+                        </div>
 
-                    <div className="row-between mt-10">
-                      <div className="muted">Гостей</div>
-                      <div className="strong">{nearestBooking.guests_count || "—"}</div>
-                    </div>
-
-                    {nearestBooking.comment ? (
-                      <div className="hint" style={{ marginTop: 10 }}>
-                        {nearestBooking.comment}
+                        {booking.comment ? (
+                          <div className="hint" style={{ marginTop: 10 }}>
+                            {booking.comment}
+                          </div>
+                        ) : null}
                       </div>
-                    ) : null}
-
-                    {/* <div className="row mt-14">
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => {
-                          try {
-                            WebApp.showPopup(
-                              {
-                                title: "Отмена записи",
-                                message: "Вы точно уверены, что хотите отменить запись?",
-                                buttons: [
-                                  { id: "no", type: "cancel", text: "Нет" },
-                                  { id: "yes", type: "destructive", text: "Да, отменить" },
-                                ],
-                              },
-                              async (buttonId) => {
-                                if (buttonId !== "yes") return;
-
-                                try {
-                                  setStatus("Отменяем запись...");
-
-                                  const r = await api("/api/bookings-cancel", {
-                                    initData: WebApp.initData,
-                                    bookingId: nearestBooking.id,
-                                  });
-
-                                  if (!r.ok) {
-                                    setStatus(`Ошибка отмены: ${r.error}${r.details ? " | " + r.details : ""}`);
-                                    return;
-                                  }
-
-                                  await refreshAll();
-                                  setStatus("Запись отменена ✅");
-                                } catch (e) {
-                                  setStatus("Ошибка: " + String(e?.message || e));
-                                }
-                              }
-                            );
-                          } catch {
-                            // fallback если popup недоступен
-                            const ok = window.confirm("Вы точно уверены, что хотите отменить запись?");
-                            if (!ok) return;
-
-                            (async () => {
-                              try {
-                                setStatus("Отменяем запись...");
-
-                                const r = await api("/api/bookings-cancel", {
-                                  initData: WebApp.initData,
-                                  bookingId: nearestBooking.id,
-                                });
-
-                                if (!r.ok) {
-                                  setStatus(`Ошибка отмены: ${r.error}${r.details ? " | " + r.details : ""}`);
-                                  return;
-                                }
-
-                                await refreshAll();
-                                setStatus("Запись отменена ✅");
-                              } catch (e) {
-                                setStatus("Ошибка: " + String(e?.message || e));
-                              }
-                            })();
-                          }
-                        }}
-                      >
-                        Отменить
-                      </button>
-
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => {
-                          setNewBookingDate(nearestBooking.booking_date || "");
-                          setNewBookingTime(nearestBooking.booking_time || "");
-                          setShowRescheduleModal(true);
-                        }}
-                      >
-                        Перенести
-                      </button>
-                    </div> */}
-                    
-                  </>
+                    ))}
+                  </div>
                 ) : (
                   <div className="muted" style={{ marginTop: 10 }}>
-                    У вас пока нет активной записи
+                    У вас пока нет активных записей
                   </div>
                 )}
+
                 <div className="row mt-14">
                   <button
                     className="btn btn-primary"
