@@ -66,6 +66,48 @@ function isValidPhone(value) {
   return /^\+7\d{10}$/.test(String(value || "").trim());
 }
 
+function formatShortRuDateParts(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(d.getTime())) {
+    return { weekday: "—", day: "—", month: "—" };
+  }
+
+  const weekday = d.toLocaleDateString("ru-RU", { weekday: "short" });
+  const day = d.toLocaleDateString("ru-RU", { day: "2-digit" });
+  const month = d.toLocaleDateString("ru-RU", { month: "short" });
+
+  return {
+    weekday: weekday.replace(".", ""),
+    day,
+    month: month.replace(".", ""),
+  };
+}
+
+function buildDateCarousel(centerDateStr, daysBefore = 7, daysAfter = 14) {
+  const base = new Date(`${centerDateStr}T00:00:00`);
+  if (Number.isNaN(base.getTime())) return [];
+
+  const items = [];
+
+  for (let i = -daysBefore; i <= daysAfter; i++) {
+    const d = new Date(base);
+    d.setDate(d.getDate() + i);
+
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const value = `${yyyy}-${mm}-${dd}`;
+
+    items.push({
+      value,
+      ...formatShortRuDateParts(value),
+      isToday: i === 0,
+    });
+  }
+
+  return items;
+}
+
 function formatBirthDate(value) {
   const s = String(value || "").trim();
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -2549,6 +2591,8 @@ function AdminBookingsScreen({ api, initData, status, setStatus, onBack }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const carouselDates = buildDateCarousel(today, 7, 14);
+
   async function load(dateValue) {
     try {
       setLoading(true);
@@ -2597,18 +2641,38 @@ function AdminBookingsScreen({ api, initData, status, setStatus, onBack }) {
 
         <div className="field">
           <div className="label">Дата</div>
-          <input
-            className="input"
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
+
+          <div className="date-carousel">
+            {carouselDates.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                className={`date-pill ${selectedDate === item.value ? "active" : ""}`}
+                onClick={() => setSelectedDate(item.value)}
+              >
+                <div className="date-pill-weekday">
+                  {item.isToday ? "сегодня" : item.weekday}
+                </div>
+                <div className="date-pill-day">{item.day}</div>
+                <div className="date-pill-month">{item.month}</div>
+              </button>
+            ))}
+          </div>
         </div>
+      </Card>
 
-        <div className="gap" />
+      <Card>
+        <div className="row-between" style={{ alignItems: "center" }}>
+          <div>
+            <div className="section-title">Расписание</div>
+            <div className="hint">
+              {formatBirthDate(selectedDate)}
+            </div>
+          </div>
 
-        <div className="pill">
-          {loading ? "Загрузка..." : `${items.length} записей`}
+          <div className="pill">
+            {loading ? "..." : `${items.length} записей`}
+          </div>
         </div>
       </Card>
 

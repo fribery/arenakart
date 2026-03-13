@@ -1386,3 +1386,76 @@ html {
     opacity:0;
   }
 }
+
+/* ===== Admin bookings date carousel ===== */
+
+.date-carousel {
+  margin-top: 6px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.date-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.date-pill {
+  flex: 0 0 auto;
+  min-width: 78px;
+  padding: 10px 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(10,10,12,0.08);
+  background: rgba(255,255,255,0.82);
+  box-shadow: var(--shadow2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  scroll-snap-align: center;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.date-pill:active {
+  transform: scale(0.98);
+}
+
+.date-pill.active {
+  background: linear-gradient(180deg, var(--red), #ff4d4d);
+  border-color: rgba(255,42,42,0.45);
+  color: white;
+  box-shadow: 0 12px 24px rgba(255,42,42,0.22);
+}
+
+.date-pill-weekday {
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.72;
+  text-transform: lowercase;
+}
+
+.date-pill.active .date-pill-weekday {
+  opacity: 0.9;
+}
+
+.date-pill-day {
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -0.3px;
+}
+
+.date-pill-month {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: lowercase;
+  opacity: 0.82;
+}
+
+.date-pill.active .date-pill-month {
+  opacity: 0.95;
+}

@@ -240,9 +240,11 @@ export default async function handler(req, res) {
         `${data.title || "Запись в картинг"}\n` +
         `📅 Дата: ${formatDateRu(data.booking_date)}\n` +
         `🕒 Время: ${data.booking_time}\n` +
-        `${data.guests_count ? `👥 Гостей: ${data.guests_count}\n` : ""}` +
-        `${data.comment ? `💬 ${data.comment}\n` : ""}\n` +
-        `Ждём вас в ARENA-KART 🏁`;
+        `${data.guests_count ? `👥 Гостей: ${data.guests_count}\n\n` : ""}` +
+        `🏎️ Рекомендуем приезжать за 15 минут до заезда.\n\n` +
+        `Ждём вас в ARENA-KART 🏁\n` +
+        `Адрес: Варшавское шоссе, 87 Б, ТДЦ Варшавский, 1 этаж\n` +
+        `📞 8 (916) 642-55-78`;
 
       await sendTelegramMessage(botToken, targetTelegramId, text);
       sentConfirmation = true;
