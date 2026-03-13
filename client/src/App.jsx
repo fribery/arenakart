@@ -166,6 +166,22 @@ function formatBirthDate(value) {
   return `${m[3]}.${m[2]}.${m[1]}`;
 }
 
+  function buildTimeOptions(startHour = 10, endHour = 22, stepMinutes = 15) {
+  const items = [];
+
+  for (let hour = startHour; hour <= endHour; hour++) {
+    for (let minute = 0; minute < 60; minute += stepMinutes) {
+      if (hour === endHour && minute > 0) break;
+
+      const hh = String(hour).padStart(2, "0");
+      const mm = String(minute).padStart(2, "0");
+      items.push(`${hh}:${mm}`);
+    }
+  }
+
+  return items;
+}
+
 function formatInventoryDate(value) {
   if (!value) return "Без срока";
   const d = new Date(value);
@@ -386,22 +402,6 @@ function App() {
 
     return sorted[0] || null;
   }
-
-  function buildTimeOptions(startHour = 10, endHour = 22, stepMinutes = 15) {
-  const items = [];
-
-  for (let hour = startHour; hour <= endHour; hour++) {
-    for (let minute = 0; minute < 60; minute += stepMinutes) {
-      if (hour === endHour && minute > 0) break;
-
-      const hh = String(hour).padStart(2, "0");
-      const mm = String(minute).padStart(2, "0");
-      items.push(`${hh}:${mm}`);
-    }
-  }
-
-  return items;
-}
 
   async function loadQrToken() {
     setStatus("Генерируем QR...");
