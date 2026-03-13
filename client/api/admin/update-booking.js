@@ -62,7 +62,17 @@ function isValidDate(value) {
 }
 
 function isValidTime(value) {
-  return /^\d{2}:\d{2}$/.test(String(value || "").trim());
+  const s = String(value || "").trim();
+  if (!/^\d{2}:\d{2}$/.test(s)) return false;
+
+  const [hh, mm] = s.split(":").map(Number);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return false;
+
+  if (hh < 10 || hh > 22) return false;
+  if (hh === 22 && mm !== 0) return false;
+  if (![0, 15, 30, 45].includes(mm)) return false;
+
+  return true;
 }
 
 function formatDateRu(value) {

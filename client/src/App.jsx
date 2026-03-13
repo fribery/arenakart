@@ -387,6 +387,22 @@ function App() {
     return sorted[0] || null;
   }
 
+  function buildTimeOptions(startHour = 10, endHour = 22, stepMinutes = 15) {
+  const items = [];
+
+  for (let hour = startHour; hour <= endHour; hour++) {
+    for (let minute = 0; minute < 60; minute += stepMinutes) {
+      if (hour === endHour && minute > 0) break;
+
+      const hh = String(hour).padStart(2, "0");
+      const mm = String(minute).padStart(2, "0");
+      items.push(`${hh}:${mm}`);
+    }
+  }
+
+  return items;
+}
+
   async function loadQrToken() {
     setStatus("Генерируем QR...");
     const r = await api("/api/qr-token", { initData: WebApp.initData });
@@ -2334,12 +2350,18 @@ function BookingRequestCreateModal({
 
         <div className="field">
           <div className="label">Желаемое время</div>
-          <input
+          <select
             className="input"
-            type="time"
             value={form.requestedTime}
             onChange={(e) => setForm((p) => ({ ...p, requestedTime: e.target.value }))}
-          />
+          >
+            <option value="">Выберите время</option>
+            {buildTimeOptions(10, 22, 15).map((time) => (
+              <option key={time} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="field">
