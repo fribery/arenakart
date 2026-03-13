@@ -2647,6 +2647,59 @@ function AdminBookingsScreen({ api, initData, status, setStatus, onBack }) {
   const carouselDates = buildMonthDateCarousel(selectedMonth);
   const carouselRef = useRef(null);
 
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [bookingForm, setBookingForm] = useState({
+    title: "",
+    bookingDate: "",
+    bookingTime: "",
+    guestsCount: "",
+    comment: "",
+  });
+
+  async function updateBooking(action, booking) {
+    try {
+      setStatus("Обновляем запись...");
+
+      const payload = {
+        initData,
+        bookingId: booking.id,
+        action,
+      };
+
+      if (action === "reschedule" || action === "edit") {
+        payload.booking_date = bookingForm.bookingDate;
+        payload.booking_time = bookingForm.bookingTime;
+        payload.guests_count = bookingForm.guestsCount ? Number(bookingForm.guestsCount) : null;
+        payload.comment = bookingForm.comment || "";
+      }
+
+      if (action === "edit") {
+        payload.title = bookingForm.title || booking.title || "Запись в картинг";
+      }
+
+      const r = await api("/api/admin/update-booking", payload);
+
+      if (!r.ok) {
+        setStatus(`Ошибка записи: ${r.error}${r.details ? " | " + r.details : ""}`);
+        return;
+      }
+
+      setSelectedBooking(null);
+      setBookingForm({
+        title: "",
+        bookingDate: "",
+        bookingTime: "",
+        guestsCount: "",
+        comment: "",
+      });
+
+      await load(selectedDate);
+      setStatus("Запись обновлена ✅");
+    } catch (e) {
+      setStatus("Ошибка: " + String(e?.message || e));
+    }
+  }
+
   async function load(dateValue) {
     try {
       setLoading(true);
@@ -2815,13 +2868,174 @@ function AdminBookingsScreen({ api, initData, status, setStatus, onBack }) {
                   {booking.comment}
                 </div>
               ) : null}
+
+              <div className="user-compact-actions" style={{ marginTop: 12 }}>
+                <button
+                  className="btn btn-secondary btn-mini"
+                  onClick={() => {
+                    try {
+                      WebApp.showPopup(
+                        {
+                          title: "Отмена записи",
+                          message: "Точно отменить запись?",
+                          buttons: [
+                            { id: "no", type: "cancel", text: "Нет" },
+                            { id: "yes", type: "destructive", text: "Да, отменить" },
+                          ],
+                        },
+                        (buttonId) => {
+                          if (buttonId === "yes") {
+                            updateBooking("cancel", booking);
+                          }
+                        }
+                      );
+                    } catch {
+                      updateBooking("cancel", booking);
+                    }
+                  }}
+                >
+                  Отменить
+                </button>
+
+                <button
+                  className="btn btn-secondary btn-mini"
+                  onClick={() => {
+                    setSelectedBooking({ ...booking, mode: "reschedule" });
+                    setBookingForm({
+                      title: booking.title || "Запись в картинг",
+                      bookingDate: booking.booking_date || "",
+                      bookingTime: booking.booking_time || "",
+                      guestsCount: booking.guests_count || "",
+                      comment: booking.comment || "",
+                    });
+                  }}
+                >
+                  Перенести
+                </button>
+
+                <button
+                  className="btn btn-primary btn-mini"
+                  onClick={() => {
+                    setSelectedBooking({ ...booking, mode: "edit" });
+                    setBookingForm({
+                      title: booking.title || "Запись в картинг",
+                      bookingDate: booking.booking_date || "",
+                      bookingTime: booking.booking_time || "",
+                      guestsCount: booking.guests_count || "",
+                      comment: booking.comment || "",
+                    });
+                  }}
+                >
+                  Изменить
+                </button>
+              </div>
             </Card>
           ))}
         </div>
       )}
 
+      {selectedBooking ? (
+        <AdminBookingEditModal
+          booking={selectedBooking}
+          form={bookingForm}
+          setForm={setBookingForm}
+          onClose={() => setSelectedBooking(null)}
+          onSubmit={() => updateBooking(selectedBooking.mode, selectedBooking)}
+        />
+      ) : null}
+
       <Status status={status} />
     </Page>
+  );
+}
+
+function AdminBookingEditModal({
+  booking,
+  form,
+  setForm,
+  onClose,
+  onSubmit,
+}) {
+  const isEdit = booking?.mode === "edit";
+
+  return (
+    <div className="inventory-modal-backdrop" onClick={onClose}>
+      <div
+        className="inventory-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="inventory-modal-head">
+          <div className="inventory-modal-icon">🗓️</div>
+        </div>
+
+        <div className="inventory-modal-title">
+          {isEdit ? "Изменить запись" : "Перенести запись"}
+        </div>
+
+        <div className="inventory-modal-subtitle">
+          ID {booking?.telegram_id}
+        </div>
+
+        {isEdit ? (
+          <div className="field">
+            <div className="label">Название</div>
+            <input
+              className="input"
+              value={form.title}
+              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+            />
+          </div>
+        ) : null}
+
+        <div className="field">
+          <div className="label">Дата</div>
+          <input
+            className="input"
+            type="date"
+            value={form.bookingDate}
+            onChange={(e) => setForm((p) => ({ ...p, bookingDate: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Время</div>
+          <input
+            className="input"
+            type="time"
+            value={form.bookingTime}
+            onChange={(e) => setForm((p) => ({ ...p, bookingTime: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Гостей</div>
+          <input
+            className="input"
+            inputMode="numeric"
+            value={form.guestsCount}
+            onChange={(e) => setForm((p) => ({ ...p, guestsCount: e.target.value }))}
+          />
+        </div>
+
+        <div className="field">
+          <div className="label">Комментарий</div>
+          <input
+            className="input"
+            value={form.comment}
+            onChange={(e) => setForm((p) => ({ ...p, comment: e.target.value }))}
+          />
+        </div>
+
+        <div className="row mt-14">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Отмена
+          </button>
+          <button type="button" className="btn btn-primary" onClick={onSubmit}>
+            Сохранить
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
