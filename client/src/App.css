@@ -1459,3 +1459,24 @@ html {
 .date-pill.active .date-pill-month {
   opacity: 0.95;
 }
+
+.month-input {
+  width: auto;
+  min-width: 150px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(10,10,12,0.12);
+  background: rgba(255,255,255,0.96);
+  outline: none;
+  font-size: 14px;
+  line-height: 18px;
+  color: #111;
+  font-weight: 700;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.month-input:focus {
+  border-color: rgba(255,42,42,0.45);
+  box-shadow: 0 0 0 4px rgba(255,42,42,0.12);
+}

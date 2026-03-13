@@ -66,6 +66,21 @@ function isValidPhone(value) {
   return /^\+7\d{10}$/.test(String(value || "").trim());
 }
 
+function getCurrentMonthValue() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  return `${yyyy}-${mm}`;
+}
+
+function getTodayValue() {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function formatShortRuDateParts(dateStr) {
   const d = new Date(`${dateStr}T00:00:00`);
   if (Number.isNaN(d.getTime())) {
@@ -81,6 +96,42 @@ function formatShortRuDateParts(dateStr) {
     day,
     month: month.replace(".", ""),
   };
+}
+
+function buildMonthDateCarousel(monthValue) {
+  const m = String(monthValue || "").match(/^(\d{4})-(\d{2})$/);
+  if (!m) return [];
+
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const today = getTodayValue();
+
+  const items = [];
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const value = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+    items.push({
+      value,
+      ...formatShortRuDateParts(value),
+      isToday: value === today,
+    });
+  }
+
+  return items;
+}
+
+function monthLabelRu(monthValue) {
+  const m = String(monthValue || "").match(/^(\d{4})-(\d{2})$/);
+  if (!m) return "Месяц";
+
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, 1);
+  return d.toLocaleDateString("ru-RU", {
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function buildDateCarousel(centerDateStr, daysBefore = 7, daysAfter = 14) {
@@ -2585,13 +2636,16 @@ function BookingRequestProcessModal({
 }
 
 function AdminBookingsScreen({ api, initData, status, setStatus, onBack }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getTodayValue();
+  const currentMonth = getCurrentMonthValue();
 
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedDate, setSelectedDate] = useState(today);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const carouselDates = buildDateCarousel(today, 7, 14);
+  const carouselDates = buildMonthDateCarousel(selectedMonth);
+  const carouselRef = useRef(null);
 
   async function load(dateValue) {
     try {
@@ -2623,6 +2677,37 @@ function AdminBookingsScreen({ api, initData, status, setStatus, onBack }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate]);
 
+  useEffect(() => {
+    const todayValue = getTodayValue();
+    const todayMonth = todayValue.slice(0, 7);
+
+    if (selectedMonth === todayMonth) {
+      setSelectedDate(todayValue);
+      return;
+    }
+
+    const firstDay = `${selectedMonth}-01`;
+    setSelectedDate(firstDay);
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    const container = carouselRef.current;
+    if (!container) return;
+
+    const active = container.querySelector(".date-pill.active");
+    if (!active) return;
+
+    const offset =
+      active.offsetLeft -
+      container.offsetWidth / 2 +
+      active.offsetWidth / 2;
+
+    container.scrollTo({
+      left: offset,
+      behavior: "smooth",
+    });
+  }, [selectedDate]);
+
   return (
     <Page>
       <Header subtitle="Админ • Записи" />
@@ -2640,9 +2725,22 @@ function AdminBookingsScreen({ api, initData, status, setStatus, onBack }) {
         </div>
 
         <div className="field">
-          <div className="label">Дата</div>
+          <div className="row-between" style={{ alignItems: "center" }}>
+            <div className="label" style={{ marginBottom: 0 }}>Месяц и дата</div>
 
-          <div className="date-carousel">
+            <input
+              className="month-input"
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            />
+          </div>
+
+          <div className="hint" style={{ marginTop: 8 }}>
+            {monthLabelRu(selectedMonth)}
+          </div>
+
+          <div className="date-carousel" ref={carouselRef}>
             {carouselDates.map((item) => (
               <button
                 key={item.value}
