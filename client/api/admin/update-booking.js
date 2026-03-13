@@ -259,9 +259,11 @@ export default async function handler(req, res) {
           `${updated.title || "Запись в картинг"}\n` +
           `📅 ${formatDateRu(updated.booking_date)}\n` +
           `🕒 ${updated.booking_time}\n` +
-          `${updated.guests_count ? `👥 Гостей: ${updated.guests_count}\n` : ""}` +
-          `${updated.comment ? `💬 ${updated.comment}\n` : ""}\n` +
-          `Ждём вас в GoKart 🏁`
+          `${updated.guests_count ? `👥 Гостей: ${updated.guests_count}\n\n` : ""}` +
+          `🏎️ Рекомендуем приезжать за 15 минут до заезда.\n\n` +
+          `Ждём вас в ARENA-KART 🏁\n` +
+          `Адрес: Варшавское шоссе, 87 Б, ТДЦ Варшавский, 1 этаж\n` +
+          `📞 8 (916) 642-55-78`
       );
     } catch {}
 

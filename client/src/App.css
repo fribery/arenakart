@@ -1480,3 +1480,47 @@ html {
   border-color: rgba(255,42,42,0.45);
   box-shadow: 0 0 0 4px rgba(255,42,42,0.12);
 }
+
+/* ===== Top admin buttons on main screen ===== */
+
+.admin-top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.btn-admin-top {
+  width: auto;
+  min-width: 0;
+  padding: 10px 12px;
+  min-height: 38px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.admin-pill {
+  padding: 7px 10px;
+  font-size: 11px;
+}
+
+@media (max-width: 420px) {
+  .admin-top-actions {
+    gap: 6px;
+  }
+
+  .btn-admin-top {
+    padding: 9px 10px;
+    font-size: 11px;
+  }
+
+  .admin-pill {
+    font-size: 10px;
+    padding: 6px 8px;
+  }
+}

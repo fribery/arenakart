@@ -1308,17 +1308,17 @@ function App() {
                         <div className="section-title">Админ панель</div>
                       </div>
 
-                      <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                      <div className="admin-top-actions">
                         <button
-                          className="btn btn-secondary"
+                          className="btn btn-secondary btn-admin-top"
                           onClick={() => setScreen("adminUsers")}
                           type="button"
                         >
-                          Пользователи
+                          Юзеры
                         </button>
 
                         <button
-                          className="btn btn-secondary"
+                          className="btn btn-secondary btn-admin-top"
                           onClick={() => setScreen("bookingRequests")}
                           type="button"
                         >
@@ -1326,7 +1326,7 @@ function App() {
                         </button>
 
                         <button
-                          className="btn btn-secondary"
+                          className="btn btn-secondary btn-admin-top"
                           onClick={() => setScreen("adminBookings")}
                           type="button"
                         >
