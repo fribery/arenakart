@@ -246,7 +246,7 @@ html {
 }
 
 .section-title {
-  font-size: 16px;
+  font-size: 28px;
   font-weight: 950;
   letter-spacing: 0.2px;
 }
@@ -1497,7 +1497,7 @@ html {
   padding: 10px 12px;
   min-height: 38px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 900;
   line-height: 1;
   white-space: nowrap;
