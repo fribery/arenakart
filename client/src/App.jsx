@@ -138,7 +138,7 @@ function App() {
   const [bootFade, setBootFade] = useState(false);
 
   const [tab, setTab] = useState("profile");
-  const [screen, setScreen] = useState("main"); // main | adminUsers | bookingRequests
+  const [screen, setScreen] = useState("main"); // main | adminUsers | bookingRequests | adminBookings
 
   const nameRef = useRef(null);
   const phoneRef = useRef(null);
@@ -637,7 +637,7 @@ function App() {
         <div className="app-splash">
           <img
             src="/logo.png"
-            alt="GoKart"
+            alt="ArenaKart"
             className="app-splash-logo"
           />
 
@@ -664,7 +664,7 @@ function App() {
             <input
               ref={nameRef}
               className="input"
-              placeholder="Например, Евгений"
+              placeholder="Например, Иван"
               autoComplete="name"
               value={regName}
               onChange={(e) => setRegName(normalizeCyrillicName(e.target.value))}
@@ -862,6 +862,34 @@ function App() {
       />
     );
   }
+
+  if (screen === "adminBookings") {
+  if (!auth?.isAdmin) {
+    return (
+      <Page>
+        <Header subtitle="Нет доступа" />
+        <Card>
+          <div className="strong">Этот экран доступен только админам</div>
+          <div className="gap" />
+          <button className="btn btn-secondary" onClick={() => setScreen("main")}>
+            Назад
+          </button>
+        </Card>
+        <Status status={status} />
+      </Page>
+    );
+  }
+
+  return (
+    <AdminBookingsScreen
+      api={api}
+      initData={WebApp.initData}
+      status={status}
+      setStatus={setStatus}
+      onBack={() => setScreen("main")}
+    />
+  );
+}
 
   if (screen === "bookingRequests") {
   if (!auth?.isAdmin) {
@@ -1203,6 +1231,14 @@ function App() {
                         >
                           Заявки
                         </button>
+
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => setScreen("adminBookings")}
+                          type="button"
+                        >
+                          Записи
+                        </button> 
                       </div>
                     </div>
 
@@ -2503,6 +2539,127 @@ function BookingRequestProcessModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function AdminBookingsScreen({ api, initData, status, setStatus, onBack }) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  async function load(dateValue) {
+    try {
+      setLoading(true);
+      setStatus("Загружаем записи...");
+
+      const r = await api("/api/admin/bookings-by-date", {
+        initData,
+        date: dateValue,
+      });
+
+      if (!r.ok) {
+        setStatus(`Ошибка записей: ${r.error}${r.details ? " | " + r.details : ""}`);
+        setLoading(false);
+        return;
+      }
+
+      setItems(Array.isArray(r.items) ? r.items : []);
+      setLoading(false);
+      setStatus("Готово");
+    } catch (e) {
+      setLoading(false);
+      setStatus("Ошибка: " + String(e?.message || e));
+    }
+  }
+
+  useEffect(() => {
+    load(selectedDate).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
+
+  return (
+    <Page>
+      <Header subtitle="Админ • Записи" />
+
+      <Card>
+        <div className="row-between" style={{ alignItems: "center" }}>
+          <div>
+            <div className="section-title">Записи по дате</div>
+            <div className="hint">Выбери дату и смотри все сеансы</div>
+          </div>
+
+          <button className="btn btn-secondary btn-small" onClick={onBack} type="button">
+            Назад
+          </button>
+        </div>
+
+        <div className="field">
+          <div className="label">Дата</div>
+          <input
+            className="input"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
+        </div>
+
+        <div className="gap" />
+
+        <div className="pill">
+          {loading ? "Загрузка..." : `${items.length} записей`}
+        </div>
+      </Card>
+
+      {items.length === 0 ? (
+        <Card>
+          <div className="muted">
+            {loading ? "Загрузка..." : "На эту дату записей нет"}
+          </div>
+        </Card>
+      ) : (
+        <div className="list">
+          {items.map((booking) => (
+            <Card key={booking.id}>
+              <div className="user-compact-top">
+                <div className="user-compact-main">
+                  <div className="user-compact-name">
+                    {booking.profile?.name || "Клиент"}
+                  </div>
+
+                  <div className="user-compact-sub">
+                    ID: {booking.telegram_id}
+                  </div>
+
+                  {booking.profile?.phone ? (
+                    <a className="user-phone" href={`tel:${booking.profile.phone}`}>
+                      📞 {booking.profile.phone}
+                    </a>
+                  ) : null}
+                </div>
+
+                <div className="pill">{booking.booking_time || "—"}</div>
+              </div>
+
+              <div className="user-compact-stats" style={{ marginTop: 10 }}>
+                <span>Дата: {formatBirthDate(booking.booking_date)}</span>
+                <span>Время: {booking.booking_time || "—"}</span>
+                <span>Гостей: {booking.guests_count || "—"}</span>
+              </div>
+
+              {booking.comment ? (
+                <div className="hint" style={{ marginTop: 10 }}>
+                  {booking.comment}
+                </div>
+              ) : null}
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Status status={status} />
+    </Page>
   );
 }
 
