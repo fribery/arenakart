@@ -65,6 +65,47 @@ function isValidTime(value) {
   return true;
 }
 
+function getAdminTelegramIds(adminList) {
+  return (adminList || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((x) => Number(x))
+    .filter((x) => Number.isFinite(x) && x > 0);
+}
+
+async function sendTelegramMessage(botToken, chatId, text) {
+  const r = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+    }),
+  });
+
+  const data = await r.json();
+  if (!data.ok) {
+    throw new Error(data.description || "TELEGRAM_SEND_FAILED");
+  }
+
+  return data.result;
+}
+
+async function notifyAllAdmins(botToken, adminIds, text) {
+  const results = await Promise.allSettled(
+    adminIds.map((adminId) => sendTelegramMessage(botToken, adminId, text))
+  );
+
+  return results.map((r, idx) => ({
+    adminId: adminIds[idx],
+    ok: r.status === "fulfilled",
+    error: r.status === "rejected"
+      ? String(r.reason?.message || r.reason || "")
+      : null,
+  }));
+}
+
 export default async function handler(req, res) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 
